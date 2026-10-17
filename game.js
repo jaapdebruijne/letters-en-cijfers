@@ -32,7 +32,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'menu', 'trace', 'find', 'pop', 'bye'].forEach(function (n) {
+  ['profile', 'games', 'menu', 'trace', 'find', 'pop', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -66,9 +66,35 @@
     buildTrace();
     buildFind();
     buildPop();
-    buildMenu();
-    show('menu');
+    buildGames();
+    show('games');
     audio.voiceWelcome();
+  }
+
+  // ---------- Which game? ----------
+  function buildGames() {
+    var s = scr.games, key = state.profile;
+    s.textContent = '';
+    var sw = h('button', 'switch', LC.catSVG(other(key), { head: true }));
+    sw.addEventListener('click', function () { buildProfile(); show('profile'); });
+    s.appendChild(sw);
+
+    var mc = h('div', 'games-cat', LC.catSVG(key, {}));
+    var nm = h('div', 'pname'); nm.textContent = LC.CATS[key].name; mc.appendChild(nm);
+    var kid = store.get().profiles[key].name;
+    if (kid) { var kn = h('div', 'kname'); kn.textContent = kid; mc.appendChild(kn); }
+    s.appendChild(mc);
+
+    var row = h('div', 'gcards');
+    [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken']].forEach(function (g, i) {
+      var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0]));
+      c.dataset.game = g[0];
+      var t = h('div', 'gtitle'); t.textContent = g[1]; c.appendChild(t);
+      c.style.animationDelay = (-i * 0.9) + 's';
+      c.addEventListener('click', function () { state.game = g[0]; buildMenu(); show('menu'); });
+      row.appendChild(c);
+    });
+    s.appendChild(row);
   }
 
   // ---------- Letter and number choice ----------
@@ -85,18 +111,11 @@
     }
     s.appendChild(sky);
 
-    var sw = h('button', 'switch', LC.catSVG(other(key), { head: true }));
-    sw.addEventListener('click', function () { buildProfile(); show('profile'); });
-    s.appendChild(sw);
-
-    var modes = h('div', 'modes');
-    [['trace', LC.pencilSVG()], ['find', LC.searchSVG()], ['pop', LC.balloonIconSVG()]].forEach(function (m) {
-      var mb = h('button', 'modebtn' + (m[0] === state.game ? ' on' : ''), m[1]);
-      mb.dataset.game = m[0];
-      mb.addEventListener('click', function () { state.game = m[0]; buildMenu(); });
-      modes.appendChild(mb);
-    });
-    s.appendChild(modes);
+    var back = h('button', 'home', LC.homeSVG());
+    back.addEventListener('click', function () { buildGames(); show('games'); audio.voiceChoose(); });
+    s.appendChild(back);
+    var badge = h('div', 'modebadge', state.game === 'find' ? LC.searchSVG() : state.game === 'pop' ? LC.balloonIconSVG() : LC.pencilSVG());
+    s.appendChild(badge);
 
     var mc = h('div', 'menu-cat', LC.catSVG(key, {}));
     var nm = h('div', 'pname'); nm.textContent = LC.CATS[key].name; mc.appendChild(nm);
@@ -592,6 +611,7 @@
     if (current === 'pop') startPop(G.kind);
     else if (current === 'find') startFind(F.kind);
     else if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
+    else if (current === 'games') buildGames();
     else if (current === 'menu') buildMenu();
     else if (current === 'profile') buildProfile();
   }

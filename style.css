@@ -46,10 +46,34 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(1.6vh); } }
 .switch { position: absolute; left: 2vw; top: 2vh; width: 11vh; height: 11vh; border-radius: 50%; background: rgba(255, 255, 255, 0.85); padding: 0.8vh; }
 .switch .cat { width: 100%; height: 100%; }
-.modes { position: absolute; left: 11vw; top: 2vh; display: flex; gap: 1.6vw; }
-.modebtn { width: 11vh; height: 11vh; border-radius: 50%; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; }
-.modebtn.on { background: #fff; box-shadow: 0 0 0 0.9vh #ffd166; }
-.modebtn svg { width: 6vh; height: 6vh; }
+.modebadge { position: absolute; left: calc(2vw + 13vh); top: 2vh; width: 11vh; height: 11vh; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 0 0.9vh #ffd166; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.modebadge svg { width: 6vh; height: 6vh; }
+
+/* game choice */
+.games-cat { position: absolute; left: 1.5vw; bottom: 4vh; width: 19vw; text-align: center; }
+.games-cat .cat { height: 46vh; margin: 0 auto; }
+.gcards { position: absolute; left: 25vw; right: 2vw; top: 50%; transform: translateY(-50%); display: flex; gap: 2vw; justify-content: center; }
+.gcard { width: 22.5vw; height: 78vh; border-radius: 6vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
+  overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-bottom: 2.2vh;
+  animation: wiggle 3.6s ease-in-out infinite; transition: transform 0.12s; }
+.gcard:active { transform: scale(0.95); animation: none; }
+.gc-trace { background: linear-gradient(165deg, #ffe58a, #ff9f43); }
+.gc-find { background: linear-gradient(165deg, #a8f5d9, #38bdf8); }
+.gc-pop { background: linear-gradient(165deg, #ffc2e2, #a78bfa); }
+.gart { width: 100%; height: 62vh; display: block; }
+.gtitle { background: #fff; color: #4a3f63; font-size: 4.8vh; font-weight: 800; border-radius: 4vh; padding: 0.8vh 2.4vw; box-shadow: 0 0.6vh 0 rgba(90, 60, 140, 0.18); }
+@keyframes wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(-0.8vh); } }
+.gart .pencil { transform-box: fill-box; transform-origin: 50% 100%; animation: scribble 1.3s ease-in-out infinite; }
+@keyframes scribble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(7deg); } }
+.gart .mag { transform-box: fill-box; transform-origin: 50% 50%; animation: sway2 2.2s ease-in-out infinite; }
+@keyframes sway2 { 0%, 100% { transform: translateX(-14px) rotate(-5deg); } 50% { transform: translateX(14px) rotate(5deg); } }
+.gart .bb { animation: bob2 2.6s ease-in-out infinite; }
+.gart .b2 { animation-delay: -0.9s; }
+.gart .b3 { animation-delay: -1.7s; }
+@keyframes bob2 { 0%, 100% { transform: translateY(8px); } 50% { transform: translateY(-8px); } }
+.gart .tw { transform-box: fill-box; transform-origin: 50% 50%; animation: twinkle 1.6s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { transform: scale(0.6); opacity: 0.6; } 50% { transform: scale(1.25); opacity: 1; } }
 .playbig { position: absolute; right: 4vw; top: 19vh; width: 58vw; height: 77vh; display: flex; align-items: center; justify-content: center; }
 .playbig svg { width: 34vh; height: 34vh; padding: 7vh; background: #fff; border-radius: 50%; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.18); animation: pulse2 1.8s ease-in-out infinite; }
 .playbig:active svg { transform: scale(0.95); }

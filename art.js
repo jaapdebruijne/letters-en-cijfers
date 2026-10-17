@@ -58,10 +58,11 @@
       '</svg>';
   };
 
-  LC.balloonLetterSVG = function (color, key) {
+  LC.balloonLetterSVG = function (color, key, pos) {
     var g = LC.GLYPHS[key];
     var paths = g.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
-    return '<svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    var at = pos ? ' x="' + pos[0] + '" y="' + pos[1] + '" width="' + pos[2] + '" height="' + pos[3] + '"' : '';
+    return '<svg' + at + ' viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<path d="M 30 68 C 22 78 38 88 30 98" stroke="#b9a8d4" stroke-width="2" fill="none"/>' +
       '<ellipse cx="30" cy="32" rx="26" ry="31" fill="' + color + '"/>' +
       '<path d="M 30 62 L 23 71 L 37 71 Z" fill="' + color + '"/>' +
@@ -69,6 +70,51 @@
       '<svg x="16" y="12" width="28" height="40" viewBox="' + g.view.join(' ') + '" preserveAspectRatio="xMidYMid meet">' +
       '<g fill="none" stroke="' + g.color + '" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>' +
       '</svg>';
+  };
+
+  // Big illustrated artwork for the three game buttons.
+  function sparkle(x, y, s) {
+    return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><path class="tw" d="M 0 -10 L 3 -3 L 10 0 L 3 3 L 0 10 L -3 3 L -10 0 L -3 -3 Z" fill="#fff"/></g>';
+  }
+  function glyphIn(key, x, y, w, h, sw, color) {
+    var g = LC.GLYPHS[key];
+    var paths = g.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+    return '<svg x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" viewBox="' + g.view.join(' ') + '">' +
+      '<g fill="none" stroke="' + (color || g.color) + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>';
+  }
+
+  LC.gameCardSVG = function (kind) {
+    var head = '<svg class="gart" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<circle cx="40" cy="250" r="36" fill="#fff" opacity="0.18"/><circle cx="208" cy="58" r="46" fill="#fff" opacity="0.18"/>';
+    var body = '';
+    if (kind === 'trace') {
+      var A = LC.GLYPHS.A.strokes;
+      var guide = A.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      body = sparkle(34, 52, 1.3) + sparkle(205, 215, 1.1) + sparkle(190, 30, 0.8) +
+        '<svg x="50" y="70" width="140" height="190" viewBox="0 0 120 160">' +
+        '<g fill="none" stroke="#fff" stroke-width="28" opacity="0.6" stroke-linecap="round" stroke-linejoin="round">' + guide + '</g>' +
+        '<g fill="none" stroke="#7c5cd6" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 11">' + guide + '</g>' +
+        '<path d="M 18 148 L 60 14" fill="none" stroke="#ff4f81" stroke-width="20" stroke-linecap="round"/></svg>' +
+        '<g transform="translate(120 88) rotate(32)"><g class="pencil">' +
+        '<path d="M 0 0 L -9 -24 L 9 -24 Z" fill="#f5d6a3"/><path d="M 0 0 L -3.2 -8.5 L 3.2 -8.5 Z" fill="#3b2f55"/>' +
+        '<rect x="-9" y="-108" width="18" height="84" fill="#ffcf3f"/><rect x="-2.5" y="-108" width="5" height="84" fill="#ffb300"/>' +
+        '<rect x="-9.5" y="-119" width="19" height="11" fill="#b8c0cc"/><rect x="-9" y="-133" width="18" height="15" rx="6" fill="#ff8fab"/>' +
+        '</g></g>';
+    } else if (kind === 'find') {
+      body = sparkle(34, 52, 1.2) + sparkle(205, 40, 1.4) + sparkle(30, 262, 0.9) +
+        '<rect x="12" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn('A', 22, 106, 48, 84, 15) +
+        '<rect x="86" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn('M', 96, 106, 48, 84, 15) +
+        '<rect x="160" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn('P', 170, 106, 48, 84, 15) +
+        '<g class="mag"><circle cx="122" cy="156" r="56" fill="#ffffff" fill-opacity="0.28" stroke="#ff7a59" stroke-width="13"/>' +
+        '<path d="M 164 198 L 212 258" stroke="#ff7a59" stroke-width="20" stroke-linecap="round"/>' +
+        '<path d="M 88 128 C 96 112 110 104 124 102" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.9"/></g>';
+    } else {
+      body = sparkle(30, 40, 1.3) + sparkle(212, 36, 1.0) + sparkle(120, 270, 1.2) +
+        '<g class="bb b1">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[0], 'A', [10, 76, 80, 133]) + '</g>' +
+        '<g class="bb b2">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[2], 'M', [74, 22, 94, 157]) + '</g>' +
+        '<g class="bb b3">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[1], 'P', [152, 88, 76, 127]) + '</g>';
+    }
+    return head + body + '</svg>';
   };
 
   LC.balloonIconSVG = function () {
