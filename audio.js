@@ -170,7 +170,7 @@
         var s = LC.GLYPHS[k].sound;
         if (!seen[s]) { seen[s] = 1; clipUrl('audio/letters/' + s + '.mp3'); }
       });
-      ['welkom', 'kies', 'kijk', 'hoeveel'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
+      ['welkom', 'kies', 'kijk', 'hoeveel', 'wissel'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
       for (var i = 1; i <= PRAISE_COUNT; i++) clipUrl('audio/phrases/goed-' + i + '.mp3');
       for (var j = 1; j <= RETRY_COUNT; j++) clipUrl('audio/phrases/nogeens-' + j + '.mp3');
     },
@@ -188,6 +188,7 @@
     engineStart: engineStart,
     engineSet: engineSet,
     engineStop: engineStop,
+    voiceSwitch: function () { return playVoice('audio/phrases/wissel.mp3'); },
     voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
     // A rising note for each thing that is counted (1 = low, 9 = high).
     note: function (i) {

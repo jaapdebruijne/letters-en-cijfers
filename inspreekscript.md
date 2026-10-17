@@ -85,7 +85,7 @@ Zelfde klank, maar zeg "De kleine ..." in plaats van "De ...".
 | [ ] | `8.mp3` | De acht. Zeg mij maar na: acht |
 | [ ] | `9.mp3` | De negen. Zeg mij maar na: negen |
 
-## Zinnetjes (12 bestanden, in `audio/phrases/`)
+## Zinnetjes (13 bestanden, in `audio/phrases/`)
 
 | Klaar | Bestand | Wanneer | Voorbeeld |
 |---|---|---|---|
@@ -93,6 +93,7 @@ Zelfde klank, maar zeg "De kleine ..." in plaats van "De ...".
 | [ ] | `kies.mp3` | gamekeuze opent | Wat gaan we oefenen? |
 | [ ] | `kijk.mp3` | na 5 pogingen | Kijk, zo gaat het! |
 | [ ] | `hoeveel.mp3` | tel-spel, elke ronde | Hoeveel zijn het? |
+| [ ] | `wissel.mp3` | beurt is om, de andere poes mag | Tijd om te wisselen! |
 | [ ] | `goed-1.mp3` | na een succes | Goed zo! |
 | [ ] | `goed-2.mp3` | na een succes | Super gedaan! |
 | [ ] | `goed-3.mp3` | na een succes | Wat knap! |

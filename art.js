@@ -369,6 +369,19 @@
       '<circle cx="19" cy="38" r="3" fill="#cfd6e4"/><circle cx="45" cy="38" r="3" fill="#cfd6e4"/></svg>';
   };
 
+  LC.hourglassSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path d="M 14 6 L 34 6 M 14 42 L 34 42" stroke="#7c5cd6" stroke-width="5" stroke-linecap="round"/>' +
+      '<path d="M 16 8 C 16 20 24 22 24 24 C 24 26 16 28 16 40 L 32 40 C 32 28 24 26 24 24 C 24 22 32 20 32 8 Z" fill="#ffe9a8" stroke="#7c5cd6" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M 19 38 L 29 38 L 24 31 Z" fill="#ffb347"/></svg>';
+  };
+
+  LC.swapSVG = function () {
+    return '<svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path d="M 8 18 L 48 18 M 40 8 L 50 18 L 40 28" fill="none" stroke="#7c5cd6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M 56 32 L 16 32 M 24 22 L 14 32 L 24 42" fill="none" stroke="#ff7aa8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  };
+
   LC.giftSVG = function () {
     return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<rect x="8" y="20" width="32" height="22" rx="3" fill="none" stroke="#7c5cd6" stroke-width="4"/>' +

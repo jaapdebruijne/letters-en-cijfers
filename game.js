@@ -70,7 +70,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'games', 'shop', 'house', 'ride', 'menu', 'trace', 'find', 'pop', 'count', 'bye'].forEach(function (n) {
+  ['profile', 'games', 'shop', 'house', 'ride', 'menu', 'trace', 'find', 'pop', 'count', 'switch', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -78,6 +78,83 @@
   function show(n) {
     current = n;
     Object.keys(scr).forEach(function (k) { scr[k].classList.toggle('on', k === n); });
+    // When the turn is over, change cats at the next calm moment (back at a choice screen).
+    if (turn.due && (n === 'games' || n === 'menu')) setTimeout(startSwitch, 350);
+  }
+
+  // ---------- Taking turns ----------
+  // Only real play time counts: not the cat choice, not the parent panel, not a hidden page.
+  var turn = { ms: 0, due: false, grace: 0, last: Date.now() };
+  var timeupEl = null;
+
+  function showTimeup() {
+    if (timeupEl) return;
+    timeupEl = h('div', 'timeup', LC.hourglassSVG());
+    document.body.appendChild(timeupEl);
+    audio.chime();
+  }
+  function removeTimeup() {
+    if (timeupEl && timeupEl.parentNode) timeupEl.parentNode.removeChild(timeupEl);
+    timeupEl = null;
+  }
+  function turnReset() {
+    turn.ms = 0; turn.due = false; turn.grace = 0;
+    removeTimeup();
+  }
+  function turnTick(dt) {
+    var min = store.get().settings.turnMin;
+    if (!min || !state.profile || modal || document.hidden || current === 'profile' || current === 'switch' || current === 'bye') return;
+    if (!turn.due) {
+      turn.ms += dt;
+      if (turn.ms >= min * 60000) { turn.due = true; showTimeup(); }
+    } else {
+      turn.grace += dt;
+      if (turn.grace >= 75000) startSwitch();
+    }
+  }
+  setInterval(function () {
+    var now = Date.now(), dt = Math.min(2500, now - turn.last);
+    turn.last = now;
+    turnTick(dt);
+  }, 1000);
+  LC.testTurn = function (ms) { turnTick(ms); return turn; };
+
+  // Stop whatever is running; a bonus ride in progress keeps the stars collected so far.
+  function abortGames() {
+    if (R && R.ride && !R.ended) {
+      var n = R.ride.collected();
+      if (n > 0) store.addStars(state.profile, n);
+    }
+    leaveTrace(); leaveFind(); leavePop(); leaveCount(); stopRide();
+  }
+
+  function startSwitch() {
+    if (!state.profile || modal || current === 'switch' || current === 'profile' || current === 'bye') return;
+    var from = state.profile, to = other(from);
+    abortGames();
+    turnReset();
+    buildSwitch(from, to);
+    show('switch');
+    audio.voiceSwitch();
+  }
+
+  function buildSwitch(from, to) {
+    var s = scr.switch;
+    s.textContent = '';
+    s.appendChild(h('div', 'swicon', LC.swapSVG()));
+    var sl = h('div', 'sleeper', catFor(from, { cls: 'sleep' }));
+    var zz = h('div', 'zzz'); zz.textContent = 'zzz'; sl.appendChild(zz);
+    var sn = h('div', 'sleepname'); sn.textContent = LC.CATS[from].name; sl.appendChild(sn);
+    s.appendChild(sl);
+
+    var wrap = h('div', 'pwrap swwrap');
+    var card = h('button', 'pcard swcard pc-' + to, catFor(to, { cls: 'happy' }));
+    var nm = h('div', 'pname'); nm.textContent = LC.CATS[to].name; card.appendChild(nm);
+    var kid = store.get().profiles[to].name;
+    var line = h('div', 'kname'); line.textContent = kid ? kid + ', jouw beurt!' : 'Jouw beurt!'; card.appendChild(line);
+    card.addEventListener('click', function () { pickProfile(to); });
+    wrap.appendChild(card);
+    s.appendChild(wrap);
   }
 
   // ---------- Who is playing ----------
@@ -99,6 +176,7 @@
   }
 
   function pickProfile(key) {
+    turnReset();
     audio.unlock();
     audio.preload();
     audio.setMusic(store.get().settings.music);
@@ -1110,6 +1188,8 @@
       function (v) { d.settings.strict = v; store.save(); })));
     card.appendChild(row('Muziek', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.music ? 'aan' : 'uit',
       function (v) { d.settings.music = v === 'aan'; store.save(); audio.setMusic(d.settings.music); })));
+    card.appendChild(row('Beurtwissel', seg([['0', 'Uit'], ['5', '5 min'], ['10', '10 min'], ['15', '15 min']], String(d.settings.turnMin),
+      function (v) { d.settings.turnMin = +v; store.save(); turnReset(); })));
     card.appendChild(row('Naam bij Pinky', nameInput('pinky')));
     card.appendChild(row('Naam bij Groentje', nameInput('groentje')));
 

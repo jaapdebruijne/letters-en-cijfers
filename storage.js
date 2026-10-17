@@ -13,7 +13,7 @@
   function fresh() {
     return {
       profiles: { pinky: freshProfile(), groentje: freshProfile() },
-      settings: { strict: 'normaal', music: true }
+      settings: { strict: 'normaal', music: true, turnMin: 10 }
     };
   }
 
@@ -49,6 +49,7 @@
         var s = raw.settings || {};
         if (['soepel', 'normaal', 'streng'].indexOf(s.strict) >= 0) d.settings.strict = s.strict;
         if (typeof s.music === 'boolean') d.settings.music = s.music;
+        if ([0, 5, 10, 15].indexOf(s.turnMin) >= 0) d.settings.turnMin = s.turnMin;
       }
     } catch (e) { /* fall back to defaults */ }
     return d;
