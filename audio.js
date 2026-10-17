@@ -124,6 +124,16 @@
       var t = ctx.currentTime + 0.02;
       [N.C6, N.E6, N.G6].forEach(function (f, i) { tone(f, t + i * 0.13, 0.9, 0.22, 'sine', sfxGain); });
     },
+    pop: function () {
+      if (!ensure()) return;
+      var len = Math.floor(ctx.sampleRate * 0.12);
+      var buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+      var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+      src.buffer = buf; f.type = 'highpass'; f.frequency.value = 700; g.gain.value = 0.5;
+      src.connect(f); f.connect(g); g.connect(sfxGain);
+      src.start(ctx.currentTime);
+    },
     boop: function () {
       if (!ensure()) return;
       var t = ctx.currentTime + 0.02;

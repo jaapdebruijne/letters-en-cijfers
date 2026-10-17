@@ -58,6 +58,25 @@
       '</svg>';
   };
 
+  LC.balloonLetterSVG = function (color, key) {
+    var g = LC.GLYPHS[key];
+    var paths = g.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+    return '<svg viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path d="M 30 68 C 22 78 38 88 30 98" stroke="#b9a8d4" stroke-width="2" fill="none"/>' +
+      '<ellipse cx="30" cy="32" rx="26" ry="31" fill="' + color + '"/>' +
+      '<path d="M 30 62 L 23 71 L 37 71 Z" fill="' + color + '"/>' +
+      '<ellipse cx="30" cy="32" rx="16.5" ry="21.5" fill="#ffffff" opacity="0.93"/>' +
+      '<svg x="16" y="12" width="28" height="40" viewBox="' + g.view.join(' ') + '" preserveAspectRatio="xMidYMid meet">' +
+      '<g fill="none" stroke="' + g.color + '" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>' +
+      '</svg>';
+  };
+
+  LC.balloonIconSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<ellipse cx="24" cy="19" rx="13" ry="15" fill="none" stroke="#7c5cd6" stroke-width="4"/>' +
+      '<path d="M 24 34 L 20 39 L 28 39 Z M 24 39 C 20 43 28 45 24 48" fill="none" stroke="#7c5cd6" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  };
+
   LC.glyphSVG = function (key, opts) {
     var g = LC.GLYPHS[key];
     var sw = (opts && opts.sw) || 14;

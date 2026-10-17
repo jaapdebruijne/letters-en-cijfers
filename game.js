@@ -32,7 +32,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'menu', 'trace', 'find', 'bye'].forEach(function (n) {
+  ['profile', 'menu', 'trace', 'find', 'pop', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -65,6 +65,7 @@
     state.profile = key;
     buildTrace();
     buildFind();
+    buildPop();
     buildMenu();
     show('menu');
     audio.voiceWelcome();
@@ -89,7 +90,7 @@
     s.appendChild(sw);
 
     var modes = h('div', 'modes');
-    [['trace', LC.pencilSVG()], ['find', LC.searchSVG()]].forEach(function (m) {
+    [['trace', LC.pencilSVG()], ['find', LC.searchSVG()], ['pop', LC.balloonIconSVG()]].forEach(function (m) {
       var mb = h('button', 'modebtn' + (m[0] === state.game ? ' on' : ''), m[1]);
       mb.dataset.game = m[0];
       mb.addEventListener('click', function () { state.game = m[0]; buildMenu(); });
@@ -116,9 +117,9 @@
     });
     s.appendChild(tabs);
 
-    if (state.game === 'find') {
+    if (state.game !== 'trace') {
       var play = h('button', 'playbig', LC.playSVG());
-      play.addEventListener('click', function () { startFind(state.cat); });
+      play.addEventListener('click', function () { (state.game === 'pop' ? startPop : startFind)(state.cat); });
       s.appendChild(play);
       return;
     }
@@ -178,7 +179,7 @@
   }
 
   function setMood(m) {
-    var c = current === 'find' ? F.cat : T.cat;
+    var c = current === 'find' ? F.cat : current === 'pop' ? G.cat : T.cat;
     if (!c) return;
     clearTimeout(moodTimer);
     c.classList.remove('idle', 'happy', 'oops', 'help');
@@ -311,16 +312,17 @@
     nextRound();
   }
 
-  function sayTarget() {
-    if (!F.target) return;
-    var gen = F.gen;
-    audio.voiceLetter(LC.GLYPHS[F.target].sound).then(function (heard) {
-      if (gen !== F.gen) return;
+  function speakTarget(ctx) {
+    if (!ctx.target) return;
+    var gen = ctx.gen;
+    audio.voiceLetter(LC.GLYPHS[ctx.target].sound).then(function (heard) {
+      if (gen !== ctx.gen) return;
       // With no recording yet the cat shows the letter in a speech bubble instead.
-      F.bubble.innerHTML = heard ? '' : LC.glyphSVG(F.target, { sw: 16 });
-      F.bubble.classList.toggle('on', !heard);
+      ctx.bubble.innerHTML = heard ? '' : LC.glyphSVG(ctx.target, { sw: 16 });
+      ctx.bubble.classList.toggle('on', !heard);
     });
   }
+  function sayTarget() { speakTarget(F); }
 
   function nextRound() {
     clearTimeout(F.timer);
@@ -392,6 +394,157 @@
     }, 5000);
   }
 
+  // ---------- Pop the balloon ----------
+  var G = {};
+
+  function buildPop() {
+    var s = scr.pop;
+    s.textContent = '';
+    var home = h('button', 'home', LC.homeSVG());
+    home.addEventListener('click', function () { leavePop(); buildMenu(); show('menu'); audio.voiceChoose(); });
+    var cat = h('div', 'trace-cat', LC.catSVG(state.profile, {}));
+    var bubble = h('div', 'bubble');
+    cat.appendChild(bubble);
+    cat.addEventListener('click', function () { speakTarget(G); });
+    var dots = h('div', 'dots');
+    var sky = h('div', 'popsky');
+    var fx = h('div', 'balloons');
+    s.appendChild(home); s.appendChild(cat); s.appendChild(dots); s.appendChild(sky); s.appendChild(fx);
+    G = { cat: cat.querySelector('.cat'), bubble: bubble, dots: dots, sky: sky, fx: fx,
+      gen: 0, timer: 0, hintT: 0, spawn: 0, n: 0, pool: [], target: null, wrong: 0, locked: true, kind: 'upper' };
+  }
+
+  function leavePop() {
+    clearInterval(G.spawn); clearTimeout(G.timer); clearTimeout(G.hintT);
+    G.gen++;
+    if (G.sky) G.sky.innerHTML = '';
+    audio.stopVoice();
+  }
+
+  function startPop(cat) {
+    var pool = poolFor(cat);
+    if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
+    leavePop();
+    G.kind = cat; G.pool = pool; G.n = 0; G.target = null;
+    show('pop');
+    G.spawn = setInterval(spawnTick, 1500);
+    nextPopRound();
+  }
+
+  function distractor() {
+    var t = G.target;
+    var opts = G.pool.filter(function (k) { return k !== t && !lookalike(k, t); });
+    if (!opts.length) opts = G.pool.filter(function (k) { return k !== t; });
+    return opts[Math.floor(Math.random() * opts.length)];
+  }
+  function targetCount() { return G.sky.querySelectorAll('[data-key="' + G.target + '"]').length; }
+
+  function spawnTick() {
+    if (!G.target || G.sky.children.length >= 5) return;
+    var wantTarget = !G.locked && targetCount() < 2 && Math.random() < 0.4;
+    spawnBalloon(wantTarget ? G.target : distractor());
+  }
+
+  function spawnBalloon(key) {
+    var color = LC.BALLOON_COLORS[Math.floor(Math.random() * LC.BALLOON_COLORS.length)];
+    var b = h('button', 'pballoon', LC.balloonLetterSVG(color, key));
+    b.dataset.key = key;
+    b.style.left = (30 + Math.random() * 58) + 'vw';
+    b.style.animationDuration = (9 + Math.random() * 3) + 's';
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); popTap(b, key); });
+    b.addEventListener('animationend', function (e) {
+      if (e.animationName !== 'floatup') return;
+      if (b.parentNode) b.parentNode.removeChild(b);
+      if (!G.locked && G.target && !targetCount()) spawnBalloon(G.target);
+    });
+    G.sky.appendChild(b);
+    return b;
+  }
+
+  function nextPopRound() {
+    clearTimeout(G.timer); clearTimeout(G.hintT);
+    G.gen++;
+    var gen = G.gen;
+    if (G.n >= ROUNDS) { popFinale(gen); return; }
+    G.n++; G.wrong = 0;
+
+    var cands = G.pool.filter(function (k) { return k !== G.target; });
+    G.target = cands[Math.floor(Math.random() * cands.length)];
+    G.locked = false;
+    G.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) G.dots.appendChild(h('span', 'dot' + (i < G.n - 1 ? ' on' : i === G.n - 1 ? ' cur' : '')));
+    G.bubble.classList.remove('on');
+    setMood('idle');
+    if (!targetCount()) spawnBalloon(G.target);
+    G.timer = setTimeout(function () { if (gen === G.gen) speakTarget(G); }, 500);
+    G.hintT = setTimeout(function () { if (gen === G.gen) hintTarget(gen); }, 11000);
+  }
+
+  function hintTarget(gen) {
+    Array.prototype.forEach.call(G.sky.querySelectorAll('[data-key="' + G.target + '"]'), function (b) { b.classList.add('hint'); });
+    speakTarget(G);
+    G.hintT = setTimeout(function () { if (gen === G.gen) hintTarget(gen); }, 11000);
+  }
+
+  function sparks(b) {
+    var r = b.getBoundingClientRect(), root = G.fx.getBoundingClientRect();
+    var cx = r.left + r.width / 2 - root.left, cy = r.top + r.height * 0.32 - root.top;
+    for (var i = 0; i < 10; i++) {
+      var a = i / 10 * Math.PI * 2, d = 60 + Math.random() * 50;
+      var sp = h('span', 'spark');
+      sp.style.left = cx + 'px'; sp.style.top = cy + 'px';
+      sp.style.background = LC.BALLOON_COLORS[i % LC.BALLOON_COLORS.length];
+      sp.style.setProperty('--dx', Math.cos(a) * d + 'px');
+      sp.style.setProperty('--dy', Math.sin(a) * d + 'px');
+      G.fx.appendChild(sp);
+      (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 700); })(sp);
+    }
+  }
+
+  function popTap(b, key) {
+    var gen = G.gen;
+    if (G.locked || key !== G.target) {
+      if (!G.locked) {
+        G.wrong++;
+        audio.boop();
+        if (G.wrong % 2 === 0) {
+          setMood('oops'); audio.voiceRetry();
+          G.timer = setTimeout(function () { if (gen === G.gen) speakTarget(G); }, 1800);
+        }
+      }
+      b.classList.add('bounce');
+      setTimeout(function () { b.classList.remove('bounce'); }, 520);
+      return;
+    }
+    G.locked = true;
+    clearTimeout(G.hintT);
+    sparks(b);
+    if (b.parentNode) b.parentNode.removeChild(b);
+    audio.pop();
+    setMood('happy');
+    G.bubble.classList.remove('on');
+    setTimeout(function () { audio.chime(); }, 150);
+    setTimeout(function () { if (gen === G.gen) audio.voicePraise(); }, 600);
+    G.timer = setTimeout(nextPopRound, 2800);
+  }
+
+  function popFinale(gen) {
+    G.locked = true;
+    G.target = null;
+    clearInterval(G.spawn);
+    G.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) G.dots.appendChild(h('span', 'dot on'));
+    setMood('happy');
+    Array.prototype.forEach.call(G.sky.children, function (b, i) {
+      setTimeout(function () { if (gen === G.gen && b.parentNode) { sparks(b); audio.pop(); b.parentNode.removeChild(b); } }, 200 + i * 250);
+    });
+    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); } }, 400);
+    G.timer = setTimeout(function () {
+      if (gen !== G.gen) return;
+      leavePop(); buildMenu(); show('menu');
+    }, 5000);
+  }
+
   // ---------- Goodbye ----------
   function buildBye() {
     var s = scr.bye;
@@ -406,6 +559,7 @@
     closeModal();
     leaveTrace();
     leaveFind();
+    leavePop();
     audio.setMusic(false);
     buildBye();
     show('bye');
@@ -435,7 +589,8 @@
   }
   function closeAndResume() {
     closeModal();
-    if (current === 'find') startFind(F.kind);
+    if (current === 'pop') startPop(G.kind);
+    else if (current === 'find') startFind(F.kind);
     else if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
     else if (current === 'menu') buildMenu();
     else if (current === 'profile') buildProfile();
