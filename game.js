@@ -224,6 +224,8 @@
   function buildMenu() {
     var s = scr.menu, key = state.profile, prof = store.get().profiles[key];
     s.textContent = '';
+    // The game screens draw their own cat, so redraw them to show the current outfit.
+    buildTrace(); buildFind(); buildPop();
     var sky = h('div', 'sky');
     var n = Math.min(10, store.total(key));
     for (var i = 0; i < n; i++) {
