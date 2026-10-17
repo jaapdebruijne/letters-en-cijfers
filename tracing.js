@@ -153,29 +153,45 @@
       if (tries >= 5) {
         tries = 0;
         if (cb.onHelp) cb.onHelp();
-        helpT = setTimeout(demo, 1500);
+        helpT = setTimeout(function () { demo(); }, 1500);
       }
     }
 
-    function demo() {
-      if (dead || solved) return;
-      locked = true;
+    var demoing = false;
+
+    // The finger draws the shape stroke by stroke and leaves a trail behind it.
+    function demo(opts) {
+      if (dead || solved || demoing || active !== null) return;
+      var passes = (opts && opts.passes) || 2;
+      demoing = true; locked = true;
       clearTimeout(attemptT);
       resetTracks(); clearInk();
-      var paths = dots.querySelectorAll('path'), seq = [], r;
-      for (r = 0; r < 2; r++) for (var i = 0; i < paths.length; i++) seq.push({ p: paths[i], len: paths[i].getTotalLength() });
+      var paths = dots.querySelectorAll('path'), seq = [], r, i;
+      for (r = 0; r < passes; r++) {
+        for (i = 0; i < paths.length; i++) {
+          var len = paths[i].getTotalLength();
+          var trail = mk('path', { d: paths[i].getAttribute('d'), stroke: g.color, 'stroke-dasharray': len + ' ' + (len + 1), 'stroke-dashoffset': len }, 'ink');
+          ink.appendChild(trail);
+          seq.push({ p: paths[i], len: len, trail: trail, lastOfPass: i === paths.length - 1 });
+        }
+      }
       var idx = 0, start = performance.now();
       ghost.setAttribute('visibility', 'visible');
       function frame(now) {
         if (dead) return;
-        var s = seq[idx], dur = s.len / 0.07, el = now - start;
-        var q = s.p.getPointAtLength(s.len * Math.min(el, dur) / dur);
+        var s = seq[idx], dur = s.len / 0.08, el = now - start, f = Math.min(el, dur) / dur;
+        var q = s.p.getPointAtLength(s.len * f);
         ghost.setAttribute('cx', q.x); ghost.setAttribute('cy', q.y);
+        s.trail.setAttribute('stroke-dashoffset', s.len * (1 - f));
         if (el > dur + 450) {
+          if (s.lastOfPass) {
+            for (var k = 0; k <= idx; k++) if (seq[k].trail.getAttribute('class') === 'ink') seq[k].trail.setAttribute('class', 'ink fading');
+          }
           idx++; start = now;
           if (idx >= seq.length) {
             ghost.setAttribute('visibility', 'hidden');
-            locked = false; placeMarker();
+            setTimeout(function () { if (!dead) clearInk(); }, 500);
+            demoing = false; locked = false; placeMarker();
             if (cb.onHelpDone) cb.onHelpDone();
             return;
           }
@@ -221,6 +237,7 @@
     placeMarker();
 
     return {
+      demo: demo,
       destroy: function () {
         dead = true;
         clearTimeout(attemptT); clearTimeout(helpT);

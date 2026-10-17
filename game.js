@@ -106,6 +106,7 @@
       leaveTrace(); buildMenu(); show('menu'); audio.voiceChoose();
     });
     var cat = h('div', 'trace-cat', LC.catSVG(state.profile, {}));
+    cat.addEventListener('click', showHow);
     var card = h('div', 'board-card');
     var nav = h('div', 'nav');
     var prev = h('button', 'navbtn prev', LC.arrowSVG(-1));
@@ -157,6 +158,15 @@
       onHelpDone: function () { setMood('idle'); }
     });
     setTimeout(function () { if (mine === token) audio.voiceLetter(LC.GLYPHS[key].sound); }, 350);
+    if ((store.get().profiles[state.profile].done[key] || 0) < 3) {
+      setTimeout(function () { if (mine === token) showHow(); }, 1100);
+    }
+  }
+
+  function showHow() {
+    if (!tracer) return;
+    setMood('help');
+    tracer.demo({ passes: 1 });
   }
 
   function success(key, mine) {
