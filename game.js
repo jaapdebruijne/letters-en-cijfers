@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var LC = window.LC, store = LC.store, audio = LC.audio;
-  var state = { profile: null, glyph: null, cat: 'upper' };
+  var state = { profile: null, glyph: null, cat: 'upper', pos: 0 };
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
 
   function h(tag, cls, html) {
@@ -11,6 +11,22 @@
     return e;
   }
   function other(key) { return key === 'pinky' ? 'groentje' : 'pinky'; }
+
+  // The letters of a child's name (set in the parent panel). Accents are dropped and
+  // anything that is not a plain letter (spaces, hyphens) is skipped.
+  function nameLetters(profile) {
+    var raw = store.get().profiles[profile].name || '';
+    var plain = raw.normalize ? raw.normalize('NFD').replace(/[̀-ͯ]/g, '') : raw;
+    var out = [];
+    for (var i = 0; i < plain.length; i++) {
+      var c = plain.charAt(i);
+      if (/[A-Za-z]/.test(c)) out.push(out.length === 0 ? c.toUpperCase() : c);
+    }
+    return out;
+  }
+  function listFor(cat) {
+    return cat === 'name' ? nameLetters(state.profile) : LC.CATEGORIES[cat];
+  }
 
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
@@ -75,23 +91,29 @@
     if (prof.name) { var kn = h('div', 'kname'); kn.textContent = prof.name; mc.appendChild(kn); }
     s.appendChild(mc);
 
+    var letters = nameLetters(key);
+    if (state.cat === 'name' && !letters.length) state.cat = 'upper';
+
     var tabs = h('div', 'tabs');
-    [['upper', 'A'], ['lower', 'a'], ['digit', '1']].forEach(function (c) {
-      var tb = h('button', 'tab' + (c[0] === state.cat ? ' on' : ''), LC.glyphSVG(c[1], { sw: 16 }));
+    var tabDefs = [['upper', 'A'], ['lower', 'a'], ['digit', '1']];
+    if (letters.length) tabDefs.push(['name', letters[0]]);
+    tabDefs.forEach(function (c) {
+      var tb = h('button', 'tab' + (c[0] === state.cat ? ' on' : ''), LC.glyphSVG(c[1], { sw: 16 }) + (c[0] === 'name' ? '<span class="badge">★</span>' : ''));
       tb.dataset.cat = c[0];
       tb.addEventListener('click', function () { state.cat = c[0]; buildMenu(); });
       tabs.appendChild(tb);
     });
     s.appendChild(tabs);
 
-    var grid = h('div', 'grid ' + (state.cat === 'digit' ? 'g5' : 'g7'));
-    LC.CATEGORIES[state.cat].forEach(function (k) {
+    var list = listFor(state.cat);
+    var grid = h('div', 'grid ' + (state.cat === 'digit' ? 'g5' : state.cat === 'name' ? 'gname' : 'g7'));
+    list.forEach(function (k, idx) {
       var done = prof.done[k] || 0, stars = '';
       for (var j = 0; j < Math.min(5, done); j++) stars += '★';
       var t = h('button', 'tile', LC.glyphSVG(k, { sw: 16 }));
       t.dataset.key = k;
       var st = h('div', 'stars'); st.textContent = stars; t.appendChild(st);
-      t.addEventListener('click', function () { openTrace(k); });
+      t.addEventListener('click', function () { openTrace(state.cat, idx); });
       grid.appendChild(t);
     });
     s.appendChild(grid);
@@ -120,11 +142,22 @@
     T = { cat: cat.querySelector('.cat'), card: card, balloons: balloons, cur: curg };
   }
 
-  function neighbour(key, d) {
-    var list = LC.CATEGORIES[LC.categoryOf(key)], i = list.indexOf(key);
-    return list[(i + d + list.length) % list.length];
+  function step(d) {
+    var n = listFor(state.cat).length;
+    openTrace(state.cat, (state.pos + d + n) % n);
   }
-  function step(d) { openTrace(neighbour(state.glyph, d)); }
+
+  function renderCurrent(list) {
+    if (state.cat !== 'name') {
+      T.cur.className = 'navcur';
+      T.cur.innerHTML = LC.glyphSVG(state.glyph, { sw: 15 });
+      return;
+    }
+    T.cur.className = 'navcur namerow' + (list.length > 9 ? ' long' : '');
+    T.cur.innerHTML = list.map(function (k, i) {
+      return '<span class="np' + (i < state.pos ? ' done' : i === state.pos ? ' cur' : '') + '">' + LC.glyphSVG(k, { sw: 18 }) + '</span>';
+    }).join('');
+  }
 
   function setMood(m) {
     var c = T.cat;
@@ -142,14 +175,18 @@
     if (tracer) { tracer.destroy(); tracer = null; }
   }
 
-  function openTrace(key) {
+  function openTrace(cat, pos) {
     clearTimeout(advanceTimer); token++;
     var mine = token;
+    var list = listFor(cat);
+    if (!list.length) { cat = 'upper'; list = listFor(cat); pos = 0; }
+    state.cat = cat;
+    state.pos = Math.max(0, Math.min(pos || 0, list.length - 1));
+    var key = list[state.pos];
     state.glyph = key;
-    state.cat = LC.categoryOf(key);
     if (tracer) { tracer.destroy(); tracer = null; }
     show('trace');
-    T.cur.innerHTML = LC.glyphSVG(key, { sw: 15 });
+    renderCurrent(list);
     setMood('idle');
     tracer = new LC.Tracer(T.card, key, store.get().settings.strict, {
       onSuccess: function () { success(key, mine); },
@@ -173,9 +210,21 @@
     setTimeout(function () { if (mine === token) audio.voicePraise(); }, 500);
     store.addDone(state.profile, key);
     burst();
+    var list = listFor(state.cat), last = state.cat === 'name' && state.pos === list.length - 1;
+    if (last) {
+      // The whole name is done: a bigger celebration, then back to the choice screen.
+      setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 1200);
+      setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 2400);
+      advanceTimer = setTimeout(function () {
+        if (mine !== token) return;
+        leaveTrace(); buildMenu(); show('menu');
+      }, 6000);
+      return;
+    }
+    var nextPos = (state.pos + 1) % list.length, cat = state.cat;
     advanceTimer = setTimeout(function () {
       if (mine !== token) return;
-      openTrace(neighbour(key, 1));
+      openTrace(cat, nextPos);
     }, 3800);
   }
 
@@ -233,7 +282,7 @@
   }
   function closeAndResume() {
     closeModal();
-    if (current === 'trace' && state.glyph) openTrace(state.glyph);
+    if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
     else if (current === 'menu') buildMenu();
     else if (current === 'profile') buildProfile();
   }
