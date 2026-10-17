@@ -71,6 +71,12 @@
       '<path d="M 8 24 L 24 9 L 40 24 M 13 21 L 13 40 L 35 40 L 35 21" fill="none" stroke="#7c5cd6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   };
 
+  LC.arrowSVG = function (dir) {
+    var d = dir < 0 ? 'M 30 8 L 14 24 L 30 40' : 'M 18 8 L 34 24 L 18 40';
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path d="' + d + '" fill="none" stroke="#7c5cd6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  };
+
   LC.pawSVG = function () {
     return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="#7c5cd6">' +
       '<ellipse cx="32" cy="42" rx="14" ry="11"/><ellipse cx="14" cy="28" rx="6" ry="8"/><ellipse cx="25" cy="17" rx="6" ry="8"/>' +

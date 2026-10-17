@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var LC = window.LC, store = LC.store, audio = LC.audio;
-  var state = { profile: null, glyph: null };
+  var state = { profile: null, glyph: null, cat: 'upper' };
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
 
   function h(tag, cls, html) {
@@ -75,11 +75,21 @@
     if (prof.name) { var kn = h('div', 'kname'); kn.textContent = prof.name; mc.appendChild(kn); }
     s.appendChild(mc);
 
-    var grid = h('div', 'grid');
-    LC.ORDER.forEach(function (k) {
+    var tabs = h('div', 'tabs');
+    [['upper', 'A'], ['lower', 'a'], ['digit', '1']].forEach(function (c) {
+      var tb = h('button', 'tab' + (c[0] === state.cat ? ' on' : ''), LC.glyphSVG(c[1], { sw: 16 }));
+      tb.dataset.cat = c[0];
+      tb.addEventListener('click', function () { state.cat = c[0]; buildMenu(); });
+      tabs.appendChild(tb);
+    });
+    s.appendChild(tabs);
+
+    var grid = h('div', 'grid ' + (state.cat === 'digit' ? 'g5' : 'g7'));
+    LC.CATEGORIES[state.cat].forEach(function (k) {
       var done = prof.done[k] || 0, stars = '';
       for (var j = 0; j < Math.min(5, done); j++) stars += '★';
       var t = h('button', 'tile', LC.glyphSVG(k, { sw: 16 }));
+      t.dataset.key = k;
       var st = h('div', 'stars'); st.textContent = stars; t.appendChild(st);
       t.addEventListener('click', function () { openTrace(k); });
       grid.appendChild(t);
@@ -97,17 +107,23 @@
     });
     var cat = h('div', 'trace-cat', LC.catSVG(state.profile, {}));
     var card = h('div', 'board-card');
-    var strip = h('div', 'strip');
+    var nav = h('div', 'nav');
+    var prev = h('button', 'navbtn prev', LC.arrowSVG(-1));
+    var curg = h('div', 'navcur');
+    var next = h('button', 'navbtn next', LC.arrowSVG(1));
+    prev.addEventListener('click', function () { step(-1); });
+    next.addEventListener('click', function () { step(1); });
+    nav.appendChild(prev); nav.appendChild(curg); nav.appendChild(next);
     var balloons = h('div', 'balloons');
-    s.appendChild(home); s.appendChild(cat); s.appendChild(card); s.appendChild(strip); s.appendChild(balloons);
-    T = { cat: cat.querySelector('.cat'), card: card, balloons: balloons, minis: {} };
-    LC.ORDER.forEach(function (k) {
-      var b = h('button', 'mini', LC.glyphSVG(k, { sw: 15 }));
-      b.addEventListener('click', function () { openTrace(k); });
-      strip.appendChild(b);
-      T.minis[k] = b;
-    });
+    s.appendChild(home); s.appendChild(cat); s.appendChild(card); s.appendChild(nav); s.appendChild(balloons);
+    T = { cat: cat.querySelector('.cat'), card: card, balloons: balloons, cur: curg };
   }
+
+  function neighbour(key, d) {
+    var list = LC.CATEGORIES[LC.categoryOf(key)], i = list.indexOf(key);
+    return list[(i + d + list.length) % list.length];
+  }
+  function step(d) { openTrace(neighbour(state.glyph, d)); }
 
   function setMood(m) {
     var c = T.cat;
@@ -129,9 +145,10 @@
     clearTimeout(advanceTimer); token++;
     var mine = token;
     state.glyph = key;
+    state.cat = LC.categoryOf(key);
     if (tracer) { tracer.destroy(); tracer = null; }
     show('trace');
-    LC.ORDER.forEach(function (k) { T.minis[k].classList.toggle('cur', k === key); });
+    T.cur.innerHTML = LC.glyphSVG(key, { sw: 15 });
     setMood('idle');
     tracer = new LC.Tracer(T.card, key, store.get().settings.strict, {
       onSuccess: function () { success(key, mine); },
@@ -150,8 +167,7 @@
     burst();
     advanceTimer = setTimeout(function () {
       if (mine !== token) return;
-      var i = LC.ORDER.indexOf(key);
-      openTrace(LC.ORDER[(i + 1) % LC.ORDER.length]);
+      openTrace(neighbour(key, 1));
     }, 3800);
   }
 

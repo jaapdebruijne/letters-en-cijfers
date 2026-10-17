@@ -7,7 +7,7 @@
   // cov = share of checkpoints that must really be touched
   // win = how many checkpoints ahead the finger may jump
   var STRICT = {
-    soepel: { r: 21, cov: 0.75, win: 6 },
+    soepel: { r: 21, cov: 0.8, win: 6 },
     normaal: { r: 18, cov: 0.8, win: 5 },
     streng: { r: 13, cov: 0.9, win: 4 }
   };

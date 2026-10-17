@@ -6,13 +6,11 @@ If a file is missing, that one sound is simply skipped (the soft music
 and chimes still play). You can add them one at a time, in any order.
 
 Folder audio/letters/   (the SOUND of the letter, like at school)
-  a.mp3   "aaa"
-  m.mp3   "mmm"
-  p.mp3   "pee-sound" (the short p sound)
-  1.mp3   "één"
-  2.mp3   "twee"
-  3.mp3   "drie"
-(the capital and the small letter share the same file)
+  a.mp3 b.mp3 c.mp3 ... z.mp3     one file per letter, all lowercase names
+                                  (the capital and the small letter share the same file)
+  0.mp3 1.mp3 2.mp3 ... 9.mp3     the number, e.g. "twee"
+
+  Examples: a.mp3 = "aaa", m.mp3 = "mmm", p.mp3 = the short p sound
 
 Folder audio/phrases/
   welkom.mp3     when a child picks their cat      e.g. "Hoi! Leuk dat je er bent!"

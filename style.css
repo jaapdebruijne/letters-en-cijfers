@@ -48,13 +48,20 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .switch .cat { width: 100%; height: 100%; }
 .menu-cat { position: absolute; left: 3vw; bottom: 4vh; width: 26vw; text-align: center; }
 .menu-cat .cat { height: 56vh; margin: 0 auto; }
-.grid { position: absolute; right: 4vw; top: 20vh; width: 58vw; height: 72vh; display: grid; grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr); gap: 2vh 2vw; }
-.tile { background: rgba(255, 255, 255, 0.94); border-radius: 4vh; border: 0.8vh solid #fff; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 0.6vh; transition: transform 0.12s; }
+.tabs { position: absolute; right: 4vw; top: 3vh; width: 58vw; height: 13vh; display: flex; gap: 2vw; justify-content: center; }
+.tab { width: 22vw; border-radius: 3vh; background: rgba(255, 255, 255, 0.8); display: flex; align-items: center; justify-content: center; }
+.tab.on { background: #fff; box-shadow: 0 0 0 0.9vh #ffd166; }
+.tab .glyph { height: 9vh; width: auto; }
+.grid { position: absolute; right: 4vw; top: 19vh; width: 58vw; height: 77vh; display: grid; gap: 1.6vh 1.2vw; }
+.grid.g7 { grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(4, 1fr); }
+.grid.g5 { grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(2, 1fr); }
+.tile { background: rgba(255, 255, 255, 0.94); border-radius: 3vh; border: 0.6vh solid #fff; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.4vh; transition: transform 0.12s; min-width: 0; }
 .tile:active { transform: scale(0.96); }
-.tile .glyph { height: 13vh; width: auto; }
-.stars { min-height: 3.6vh; font-size: 3.2vh; color: #ffc83d; letter-spacing: 0.3vh; }
+.tile .glyph { height: 9vh; width: auto; max-width: 90%; }
+.g5 .tile .glyph { height: 15vh; }
+.stars { min-height: 2.6vh; font-size: 2.4vh; color: #ffc83d; letter-spacing: 0.2vh; line-height: 2.6vh; }
+.g5 .stars { font-size: 3.4vh; min-height: 3.6vh; }
 
 /* tracing screen */
 .home { position: absolute; left: 2vw; top: 2vh; width: 11vh; height: 11vh; border-radius: 50%; background: rgba(255, 255, 255, 0.88);
@@ -75,10 +82,12 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .board-svg.solved .guide-wide { opacity: 0.4; }
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.4); } }
 @keyframes fadeout { to { opacity: 0; } }
-.strip { position: absolute; left: 0; right: 0; bottom: 1.6vh; display: flex; justify-content: center; gap: 1.2vw; }
-.mini { width: 10vh; height: 10vh; border-radius: 2.4vh; background: rgba(255, 255, 255, 0.72); display: flex; align-items: center; justify-content: center; }
-.mini .glyph { height: 7vh; width: auto; }
-.mini.cur { background: #fff; box-shadow: 0 0 0 0.9vh #ffd166; }
+.nav { position: absolute; left: 62%; transform: translateX(-50%); bottom: 2vh; height: 14vh; display: flex; align-items: center; gap: 3vw; }
+.navbtn { width: 13vh; height: 13vh; border-radius: 50%; background: rgba(255, 255, 255, 0.92); display: flex; align-items: center; justify-content: center; }
+.navbtn svg { width: 7vh; height: 7vh; }
+.navbtn:active { transform: scale(0.94); }
+.navcur { width: 12vh; height: 12vh; border-radius: 3vh; background: #fff; box-shadow: 0 0 0 0.9vh #ffd166; display: flex; align-items: center; justify-content: center; }
+.navcur .glyph { height: 8vh; width: auto; }
 .balloons { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .balloon { position: absolute; bottom: -16vh; width: 9vh; animation: rise 4s ease-in forwards; }
 .balloon svg { animation: sway 1.6s ease-in-out infinite alternate; }
