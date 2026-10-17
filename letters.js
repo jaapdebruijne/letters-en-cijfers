@@ -90,7 +90,7 @@
     LC.CATEGORIES.upper.push(k);
   });
   Object.keys(LOWER).forEach(function (k, i) {
-    LC.GLYPHS[k] = { view: LOWER[k][0], color: COLORS[i % COLORS.length], sound: k, strokes: LOWER[k][1] };
+    LC.GLYPHS[k] = { view: LOWER[k][0], color: COLORS[i % COLORS.length], sound: k + '-klein', strokes: LOWER[k][1] };
     LC.CATEGORIES.lower.push(k);
   });
   Object.keys(DIGITS).forEach(function (k, i) {

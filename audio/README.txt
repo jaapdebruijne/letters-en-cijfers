@@ -5,12 +5,13 @@ Drop MP3 files in the two folders below, using EXACTLY these names.
 If a file is missing, that one sound is simply skipped (the soft music
 and chimes still play). You can add them one at a time, in any order.
 
-Folder audio/letters/   (the SOUND of the letter, like at school)
-  a.mp3 b.mp3 c.mp3 ... z.mp3     one file per letter, all lowercase names
-                                  (the capital and the small letter share the same file)
-  0.mp3 1.mp3 2.mp3 ... 9.mp3     the number, e.g. "twee"
+Folder audio/letters/   (what the child hears when a letter or number opens)
+  a.mp3 b.mp3 c.mp3 ... z.mp3                 the CAPITAL letters, e.g. "De A"
+  a-klein.mp3 b-klein.mp3 ... z-klein.mp3     the SMALL letters, e.g. "De kleine a"
+  0.mp3 1.mp3 2.mp3 ... 9.mp3                 the numbers, e.g. "De twee"
 
-  Examples: a.mp3 = "aaa", m.mp3 = "mmm", p.mp3 = the short p sound
+  What you say in each file is up to you, e.g. "De M... mmm".
+  File names are all lowercase.
 
 Folder audio/phrases/
   welkom.mp3     when a child picks their cat      e.g. "Hoi! Leuk dat je er bent!"
