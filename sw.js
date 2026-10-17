@@ -1,5 +1,5 @@
 const CACHE = 'lcl-v1';
-const CORE = ['./', 'index.html', 'style.css', 'letters.js', 'storage.js', 'art.js', 'audio.js', 'tracing.js', 'game.js', 'manifest.webmanifest', 'icon.svg'];
+const CORE = ['./', 'index.html', 'style.css', 'letters.js', 'storage.js', 'art.js', 'shop.js', 'audio.js', 'tracing.js', 'game.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(CORE)).then(() => self.skipWaiting()));

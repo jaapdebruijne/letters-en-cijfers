@@ -11,12 +11,33 @@
 
   var EYE = '#3b2f55';
 
+  // Clothes for the cats, drawn in the cat's own coordinates (head centre 150,128).
+  // where: back = behind the body, head = moves with the head, front = over the body.
+  var ACC = {
+    bow: { where: 'head', svg: '<g transform="translate(98 58) rotate(-18)"><path d="M 0 0 L -28 -15 L -28 15 Z" fill="#ff5c8a"/><path d="M 0 0 L 28 -15 L 28 15 Z" fill="#ff5c8a"/><circle r="8" fill="#e6396b"/></g>' },
+    flower: { where: 'head', svg: '<g transform="translate(214 62)"><circle cx="0" cy="-15" r="11" fill="#fff"/><circle cx="14" cy="-5" r="11" fill="#fff"/><circle cx="9" cy="12" r="11" fill="#fff"/><circle cx="-9" cy="12" r="11" fill="#fff"/><circle cx="-14" cy="-5" r="11" fill="#fff"/><circle r="9" fill="#ffd23f"/></g>' },
+    party: { where: 'head', svg: '<path d="M 150 -14 L 108 56 L 192 56 Z" fill="#7c5cd6"/><path d="M 132 22 L 168 22 L 178 40 L 122 40 Z" fill="#ff8fab"/><circle cx="140" cy="48" r="5" fill="#ffd23f"/><circle cx="162" cy="46" r="5" fill="#ffd23f"/><circle cx="150" cy="-14" r="10" fill="#ffd23f"/>' },
+    wizard: { where: 'head', svg: '<path d="M 104 56 C 130 40 140 -10 160 -56 C 168 -20 184 30 196 56 Z" fill="#5b3fa6"/><ellipse cx="150" cy="58" rx="80" ry="15" fill="#4a3290"/><path d="M 150 14 L 154 24 L 165 24 L 156 31 L 160 41 L 150 35 L 140 41 L 144 31 L 135 24 L 146 24 Z" fill="#ffd23f"/>' },
+    crown: { where: 'head', svg: '<path d="M 108 54 L 106 14 L 128 34 L 150 4 L 172 34 L 194 14 L 192 54 Z" fill="#ffd23f" stroke="#e0a800" stroke-width="5" stroke-linejoin="round"/><circle cx="150" cy="40" r="6" fill="#ff4f81"/><circle cx="124" cy="44" r="4.5" fill="#4cc9f0"/><circle cx="176" cy="44" r="4.5" fill="#4cc9f0"/>' },
+    shades: { where: 'head', svg: '<rect x="82" y="100" width="56" height="42" rx="16" fill="#2b2140"/><rect x="162" y="100" width="56" height="42" rx="16" fill="#2b2140"/><rect x="136" y="112" width="28" height="9" fill="#2b2140"/><path d="M 92 112 L 108 108 M 172 112 L 188 108" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.6"/>' },
+    hearts: { where: 'head', svg: '<g transform="translate(110 124) scale(1.55)"><path d="M 0 10 C -24 -6 -16 -28 0 -15 C 16 -28 24 -6 0 10 Z" fill="#ff4f81" opacity="0.92"/><path d="M -9 -10 C -13 -8 -13 -4 -12 -2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><g transform="translate(190 124) scale(1.55)"><path d="M 0 10 C -24 -6 -16 -28 0 -15 C 16 -28 24 -6 0 10 Z" fill="#ff4f81" opacity="0.92"/><path d="M -9 -10 C -13 -8 -13 -4 -12 -2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><path d="M 134 118 L 166 118" stroke="#ff4f81" stroke-width="5"/>' },
+    cape: { where: 'back', svg: '<path d="M 98 214 C 52 270 40 330 62 346 L 238 346 C 260 330 248 270 202 214 Z" fill="#ef476f"/><path d="M 62 346 L 238 346 L 232 334 L 68 334 Z" fill="#c9304f"/>' },
+    scarf: { where: 'front', svg: '<path d="M 94 214 Q 150 246 206 214 L 212 238 Q 150 272 88 238 Z" fill="#4cc9f0"/><path d="M 118 232 L 126 252 M 150 240 L 150 262 M 182 232 L 174 252" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.7"/><rect x="170" y="238" width="26" height="60" rx="10" fill="#4cc9f0"/><path d="M 170 262 L 196 262 M 170 280 L 196 280" stroke="#fff" stroke-width="5" opacity="0.7"/>' }
+  };
+
   LC.catSVG = function (key, opts) {
     opts = opts || {};
     var c = PAL[key];
-    var vb = opts.head ? '45 5 210 215' : '0 0 300 345';
+    var vb = opts.vb || (opts.head ? '45 5 210 215' : '0 0 300 345');
+    var o = opts.outfit || {}, back = '', onHead = '', front = '';
+    ['head', 'face', 'body'].forEach(function (slot) {
+      var a = o[slot] && ACC[o[slot]];
+      if (!a) return;
+      if (a.where === 'back') back += a.svg; else if (a.where === 'front') front += a.svg; else onHead += a.svg;
+    });
     return '' +
       '<svg class="cat ' + (opts.cls || 'idle') + '" viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      back +
       '<path class="tail" d="M 215 296 C 290 300 300 215 262 196" fill="none" stroke="' + c.main + '" stroke-width="26" stroke-linecap="round"/>' +
       '<g class="body-g">' +
       '<ellipse cx="150" cy="262" rx="84" ry="76" fill="' + c.main + '"/>' +
@@ -45,8 +66,72 @@
       '<path class="mouth-smile" d="M 150 158 L 150 166 M 150 166 Q 138 178 124 168 M 150 166 Q 162 178 176 168" stroke="' + EYE + '" stroke-width="4" fill="none" stroke-linecap="round"/>' +
       '<path class="mouth-happy" d="M 128 164 Q 150 200 172 164 Z" fill="#c2456b" stroke="' + EYE + '" stroke-width="4" stroke-linejoin="round"/>' +
       '<path d="M 70 158 L 28 150 M 70 168 L 26 172 M 72 178 L 34 192 M 230 158 L 272 150 M 230 168 L 274 172 M 228 178 L 266 192" stroke="#8a7aa6" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>' +
+      onHead +
       '</g>' +
+      front +
       '</svg>';
+  };
+
+  // Doll house things. Drawn around (0,0) = middle of the bottom edge; `at` is where
+  // they stand in the room (room is 1280 x 800), `vb` is the crop used for shop pictures.
+  var DECOR = {
+    teddy: { at: [440, 664], vb: '-70 -140 140 150', svg:
+      '<ellipse cx="0" cy="-34" rx="38" ry="40" fill="#c68642"/><ellipse cx="0" cy="-30" rx="22" ry="26" fill="#e8c39e"/>' +
+      '<circle cx="-24" cy="-6" r="14" fill="#c68642"/><circle cx="24" cy="-6" r="14" fill="#c68642"/>' +
+      '<ellipse cx="-38" cy="-44" rx="11" ry="16" fill="#c68642" transform="rotate(25 -38 -44)"/><ellipse cx="38" cy="-44" rx="11" ry="16" fill="#c68642" transform="rotate(-25 38 -44)"/>' +
+      '<circle cx="0" cy="-90" r="30" fill="#c68642"/><circle cx="-24" cy="-114" r="12" fill="#c68642"/><circle cx="24" cy="-114" r="12" fill="#c68642"/>' +
+      '<circle cx="-24" cy="-114" r="6" fill="#e8c39e"/><circle cx="24" cy="-114" r="6" fill="#e8c39e"/>' +
+      '<ellipse cx="0" cy="-82" rx="14" ry="10" fill="#e8c39e"/><circle cx="-11" cy="-95" r="3.6" fill="#3b2f55"/><circle cx="11" cy="-95" r="3.6" fill="#3b2f55"/>' +
+      '<ellipse cx="0" cy="-86" rx="4.5" ry="3.4" fill="#3b2f55"/><path d="M -6 -66 L 0 -60 L 6 -66 L 6 -58 L 0 -62 L -6 -58 Z" fill="#ef476f"/>' },
+    lamp: { at: [1235, 650], vb: '-60 -350 120 360', svg:
+      '<ellipse cx="0" cy="-4" rx="34" ry="8" fill="#b9a8d4"/><rect x="-4" y="-270" width="8" height="266" fill="#b9a8d4"/>' +
+      '<circle cx="0" cy="-290" r="100" fill="#fff3b0" opacity="0.2"/><path d="M -42 -258 L 42 -258 L 28 -318 L -28 -318 Z" fill="#ffe27a"/>' +
+      '<path d="M -42 -258 L 42 -258 L 38 -270 L -38 -270 Z" fill="#ffd23f"/>' },
+    fishbowl: { at: [1048, 650], vb: '-70 -200 140 210', svg:
+      '<rect x="-34" y="-86" width="8" height="82" fill="#d9a7bd"/><rect x="26" y="-86" width="8" height="82" fill="#d9a7bd"/><ellipse cx="0" cy="-90" rx="46" ry="9" fill="#f4c7a3"/>' +
+      '<circle cx="0" cy="-140" r="46" fill="#bfe9ff" opacity="0.75"/><path d="M -40 -128 A 46 46 0 0 0 40 -128 Z" fill="#7cc8f0" opacity="0.6"/>' +
+      '<ellipse cx="-8" cy="-140" rx="14" ry="9" fill="#ff8a3d"/><path d="M 4 -140 L 18 -149 L 18 -131 Z" fill="#ff8a3d"/><circle cx="-14" cy="-143" r="2.4" fill="#3b2f55"/>' +
+      '<path d="M 24 -96 C 18 -112 30 -120 24 -134" stroke="#5bbf72" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+      '<ellipse cx="0" cy="-184" rx="46" ry="6" fill="none" stroke="#fff" stroke-width="3" opacity="0.6"/>' },
+    horse: { at: [850, 672], vb: '-100 -190 200 200', svg:
+      '<path d="M -90 -6 C -70 12 70 12 90 -6" stroke="#b9774a" stroke-width="12" fill="none" stroke-linecap="round"/>' +
+      '<path d="M -50 -8 L -40 -80 M 50 -8 L 40 -80" stroke="#c68642" stroke-width="10" stroke-linecap="round"/>' +
+      '<ellipse cx="0" cy="-92" rx="58" ry="30" fill="#f2c18d"/><path d="M 34 -100 L 50 -150 L 78 -160 L 88 -140 L 62 -120 Z" fill="#f2c18d"/>' +
+      '<ellipse cx="80" cy="-146" rx="20" ry="14" fill="#f2c18d" transform="rotate(-15 80 -146)"/><circle cx="76" cy="-152" r="3.4" fill="#3b2f55"/>' +
+      '<path d="M 46 -150 L 40 -176 L 58 -160 Z" fill="#c68642"/><path d="M 40 -138 C 20 -150 20 -120 36 -110" stroke="#ef476f" stroke-width="9" fill="none" stroke-linecap="round"/>' +
+      '<path d="M -56 -100 C -80 -96 -84 -70 -72 -52" stroke="#ef476f" stroke-width="9" fill="none" stroke-linecap="round"/>' +
+      '<path d="M -10 -118 L 28 -108" stroke="#ef476f" stroke-width="8" stroke-linecap="round"/>' },
+    train: { at: [540, 782], vb: '-30 -90 330 100', svg:
+      '<rect x="0" y="-52" width="70" height="40" rx="8" fill="#ef476f"/><rect x="42" y="-72" width="30" height="24" rx="5" fill="#ef476f"/><rect x="8" y="-64" width="22" height="12" rx="3" fill="#4a3f63"/>' +
+      '<rect x="48" y="-90" width="12" height="20" fill="#4a3f63"/><circle cx="54" cy="-98" r="9" fill="#fff" opacity="0.8"/>' +
+      '<circle cx="16" cy="-10" r="12" fill="#4a3f63"/><circle cx="54" cy="-10" r="12" fill="#4a3f63"/>' +
+      '<rect x="84" y="-46" width="66" height="34" rx="8" fill="#4d96ff"/><circle cx="102" cy="-10" r="11" fill="#4a3f63"/><circle cx="134" cy="-10" r="11" fill="#4a3f63"/>' +
+      '<rect x="164" y="-46" width="66" height="34" rx="8" fill="#ffd23f"/><circle cx="182" cy="-10" r="11" fill="#4a3f63"/><circle cx="214" cy="-10" r="11" fill="#4a3f63"/>' +
+      '<path d="M 70 -30 L 84 -30 M 150 -30 L 164 -30" stroke="#4a3f63" stroke-width="5"/>' },
+    rainbow: { at: [640, 330], vb: '-160 -150 320 160', svg:
+      '<g fill="none" stroke-width="16" stroke-linecap="round">' +
+      '<path d="M -140 0 A 140 140 0 0 1 140 0" stroke="#ff6f91"/><path d="M -124 0 A 124 124 0 0 1 124 0" stroke="#ffa62b"/>' +
+      '<path d="M -108 0 A 108 108 0 0 1 108 0" stroke="#ffd23f"/><path d="M -92 0 A 92 92 0 0 1 92 0" stroke="#7bd88f"/>' +
+      '<path d="M -76 0 A 76 76 0 0 1 76 0" stroke="#4d96ff"/></g>' +
+      '<ellipse cx="-142" cy="-2" rx="30" ry="16" fill="#fff"/><ellipse cx="142" cy="-2" rx="30" ry="16" fill="#fff"/>' +
+      '<ellipse cx="-118" cy="-10" rx="22" ry="14" fill="#fff"/><ellipse cx="118" cy="-10" rx="22" ry="14" fill="#fff"/>' }
+  };
+
+  // The things a child owns, drawn into the room behind every screen.
+  LC.decorMarkup = function (ids, newId) {
+    return ids.filter(function (id) { return DECOR[id]; }).map(function (id) {
+      var d = DECOR[id];
+      return '<g transform="translate(' + d.at[0] + ' ' + d.at[1] + ')"><g class="' + (id === newId ? 'decor-in' : '') + '">' + d.svg + '</g></g>';
+    }).join('');
+  };
+  LC.decorPreview = function (id) {
+    var d = DECOR[id];
+    return '<svg class="gp" viewBox="' + d.vb + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + d.svg + '</svg>';
+  };
+  LC.accessoryPreview = function (key, id) {
+    var a = LC.shopItem(id), o = {};
+    o[a.slot] = id;
+    return LC.catSVG(key, { head: true, cls: 'still', vb: a.slot === 'body' ? '20 -4 260 354' : '40 -66 220 252', outfit: o });
   };
 
   LC.balloonSVG = function (color) {
@@ -157,6 +242,13 @@
       '<path d="' + d + '" fill="none" stroke="#7c5cd6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   };
 
+  LC.giftSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<rect x="8" y="20" width="32" height="22" rx="3" fill="none" stroke="#7c5cd6" stroke-width="4"/>' +
+      '<rect x="6" y="14" width="36" height="8" rx="3" fill="none" stroke="#7c5cd6" stroke-width="4"/>' +
+      '<path d="M 24 14 L 24 42 M 24 14 C 18 4 10 8 14 13 M 24 14 C 30 4 38 8 34 13" fill="none" stroke="#7c5cd6" stroke-width="4" stroke-linecap="round"/></svg>';
+  };
+
   LC.pawSVG = function () {
     return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="#7c5cd6">' +
       '<ellipse cx="32" cy="42" rx="14" ry="11"/><ellipse cx="14" cy="28" rx="6" ry="8"/><ellipse cx="25" cy="17" rx="6" ry="8"/>' +
@@ -202,6 +294,7 @@
       '<ellipse cx="1150" cy="530" rx="18" ry="44" fill="#a8dfb0" transform="rotate(-25 1150 540)"/>' +
       '<ellipse cx="1150" cy="522" rx="18" ry="48" fill="#8fd39b"/>' +
       '<ellipse cx="1150" cy="530" rx="18" ry="44" fill="#a8dfb0" transform="rotate(25 1150 540)"/>' +
+      '<g id="decor"></g>' +
       '</svg>';
   };
 })();
