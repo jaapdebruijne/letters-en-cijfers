@@ -195,6 +195,8 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .pballoon { position: absolute; bottom: -34vh; width: 20vh; pointer-events: auto; animation: floatup linear forwards; touch-action: none; }
 .pballoon svg { display: block; width: 100%; height: auto; animation: sway 1.8s ease-in-out infinite alternate; }
 .pballoon.bounce svg { animation: boing 0.5s ease-out; }
+.popsky.cool .pballoon { opacity: 0.5; filter: grayscale(0.5); }
+.pballoon { transition: opacity 0.3s; }
 .pballoon.hint svg { filter: drop-shadow(0 0 1.6vh #ffd166); }
 @keyframes floatup { from { transform: translateY(0); } to { transform: translateY(-150vh); } }
 @keyframes boing { 0%, 100% { transform: scale(1); } 30% { transform: scale(1.12, 0.9); } 60% { transform: scale(0.94, 1.06); } }

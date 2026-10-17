@@ -558,13 +558,14 @@
     var fx = h('div', 'balloons');
     s.appendChild(home); s.appendChild(cat); s.appendChild(dots); s.appendChild(sky); s.appendChild(fx);
     G = { cat: cat.querySelector('.cat'), bubble: bubble, dots: dots, sky: sky, fx: fx,
-      gen: 0, timer: 0, hintT: 0, spawn: 0, n: 0, pool: [], target: null, wrong: 0, locked: true, kind: 'upper' };
+      gen: 0, run: 0, timer: 0, hintT: 0, coolT: 0, spawnT: 0, n: 0, pool: [], target: null, wrong: 0,
+      locked: true, cool: false, firstTry: 0, targetDue: 0, kind: 'upper' };
   }
 
   function leavePop() {
-    clearInterval(G.spawn); clearTimeout(G.timer); clearTimeout(G.hintT);
-    G.gen++;
-    if (G.sky) G.sky.innerHTML = '';
+    clearTimeout(G.spawnT); clearTimeout(G.timer); clearTimeout(G.hintT); clearTimeout(G.coolT);
+    G.gen++; G.run++; G.cool = false;
+    if (G.sky) { G.sky.innerHTML = ''; G.sky.classList.remove('cool'); }
     audio.stopVoice();
   }
 
@@ -572,10 +573,19 @@
     var pool = poolFor(cat);
     if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
     leavePop();
-    G.kind = cat; G.pool = pool; G.n = 0; G.target = null;
+    G.kind = cat; G.pool = pool; G.n = 0; G.target = null; G.firstTry = 0;
     show('pop');
-    G.spawn = setInterval(spawnTick, 1500);
+    spawnLoop(G.run);
     nextPopRound();
+  }
+
+  // Balloons come at uneven moments, not on a fixed beat.
+  function spawnLoop(run) {
+    G.spawnT = setTimeout(function () {
+      if (run !== G.run) return;
+      spawnTick();
+      spawnLoop(run);
+    }, 800 + Math.random() * 1100);
   }
 
   function distractor() {
@@ -587,9 +597,11 @@
   function targetCount() { return G.sky.querySelectorAll('[data-key="' + G.target + '"]').length; }
 
   function spawnTick() {
-    if (!G.target || G.sky.children.length >= 5) return;
-    var wantTarget = !G.locked && targetCount() < 2 && Math.random() < 0.4;
-    spawnBalloon(wantTarget ? G.target : distractor());
+    if (!G.target) return;
+    // The wanted letter only shows up once its (random) moment has come, even if the sky is busy.
+    var due = !G.locked && targetCount() === 0 && Date.now() >= G.targetDue;
+    if (!due && G.sky.children.length >= 5) return;
+    spawnBalloon(due ? G.target : distractor());
   }
 
   function spawnBalloon(key) {
@@ -597,32 +609,47 @@
     var b = h('button', 'pballoon', LC.balloonLetterSVG(color, key));
     b.dataset.key = key;
     b.style.left = (30 + Math.random() * 58) + 'vw';
-    b.style.animationDuration = (9 + Math.random() * 3) + 's';
+    b.style.animationDuration = (8 + Math.random() * 5) + 's';
     b.addEventListener('pointerdown', function (e) { e.preventDefault(); popTap(b, key); });
     b.addEventListener('animationend', function (e) {
       if (e.animationName !== 'floatup') return;
       if (b.parentNode) b.parentNode.removeChild(b);
-      if (!G.locked && G.target && !targetCount()) spawnBalloon(G.target);
+      if (key === G.target && !G.locked && targetCount() === 0) G.targetDue = Date.now() + 1000 + Math.random() * 2000;
     });
     G.sky.appendChild(b);
     return b;
   }
 
+  // Letters of balloons that are floating in the middle of the screen right now.
+  function visibleKeys() {
+    var keys = [], h0 = window.innerHeight;
+    Array.prototype.forEach.call(G.sky.children, function (b) {
+      var top = b.getBoundingClientRect().top;
+      if (top > h0 * 0.25 && top < h0 * 0.75 && keys.indexOf(b.dataset.key) < 0) keys.push(b.dataset.key);
+    });
+    return keys;
+  }
+
   function nextPopRound() {
-    clearTimeout(G.timer); clearTimeout(G.hintT);
-    G.gen++;
+    clearTimeout(G.timer); clearTimeout(G.hintT); clearTimeout(G.coolT);
+    G.gen++; G.cool = false;
+    G.sky.classList.remove('cool');
     var gen = G.gen;
     if (G.n >= ROUNDS) { popFinale(gen); return; }
     G.n++; G.wrong = 0;
 
+    // Often the wanted letter is already floating by, otherwise it comes later at a random moment.
     var cands = G.pool.filter(function (k) { return k !== G.target; });
-    G.target = cands[Math.floor(Math.random() * cands.length)];
+    var floating = visibleKeys().filter(function (k) { return k !== G.target && G.pool.indexOf(k) >= 0; });
+    G.target = floating.length && Math.random() < 0.6
+      ? floating[Math.floor(Math.random() * floating.length)]
+      : cands[Math.floor(Math.random() * cands.length)];
+    G.targetDue = Date.now() + (targetCount() ? 0 : 2000 + Math.random() * 3500);
     G.locked = false;
     G.dots.innerHTML = '';
     for (var i = 0; i < ROUNDS; i++) G.dots.appendChild(h('span', 'dot' + (i < G.n - 1 ? ' on' : i === G.n - 1 ? ' cur' : '')));
     G.bubble.classList.remove('on');
     setMood('idle');
-    if (!targetCount()) spawnBalloon(G.target);
     G.timer = setTimeout(function () { if (gen === G.gen) speakTarget(G); }, 500);
     G.hintT = setTimeout(function () { if (gen === G.gen) hintTarget(gen); }, 11000);
   }
@@ -650,19 +677,8 @@
 
   function popTap(b, key) {
     var gen = G.gen;
-    if (G.locked || key !== G.target) {
-      if (!G.locked) {
-        G.wrong++;
-        audio.boop();
-        if (G.wrong % 2 === 0) {
-          setMood('oops'); audio.voiceRetry();
-          G.timer = setTimeout(function () { if (gen === G.gen) speakTarget(G); }, 1800);
-        }
-      }
-      b.classList.add('bounce');
-      setTimeout(function () { b.classList.remove('bounce'); }, 520);
-      return;
-    }
+    if (G.locked || G.cool) return;
+    if (key !== G.target) { wrongTap(b, gen); return; }
     G.locked = true;
     clearTimeout(G.hintT);
     sparks(b);
@@ -672,21 +688,61 @@
     G.bubble.classList.remove('on');
     setTimeout(function () { audio.chime(); }, 150);
     setTimeout(function () { if (gen === G.gen) audio.voicePraise(); }, 600);
-    gain(1, G.fx);
+    if (G.wrong === 0) { G.firstTry++; gain(1, G.fx); }
     G.timer = setTimeout(nextPopRound, 2800);
+  }
+
+  // Three chances per letter. After a miss everything rests for a moment, so tapping
+  // wildly does not help; after the third miss the cat shows the right balloon herself.
+  function wrongTap(b, gen) {
+    G.wrong++;
+    b.classList.add('bounce');
+    setTimeout(function () { b.classList.remove('bounce'); }, 520);
+    audio.boop();
+    setMood('oops');
+    if (G.wrong >= 3) { revealTarget(gen); return; }
+    G.cool = true;
+    G.sky.classList.add('cool');
+    audio.voiceRetry();
+    G.coolT = setTimeout(function () {
+      if (gen !== G.gen) return;
+      G.cool = false;
+      G.sky.classList.remove('cool');
+      speakTarget(G);
+    }, 2000);
+  }
+
+  function revealTarget(gen) {
+    G.locked = true; G.cool = false;
+    clearTimeout(G.hintT);
+    G.sky.classList.remove('cool');
+    audio.voiceHelp();
+    var t = G.sky.querySelector('[data-key="' + G.target + '"]');
+    if (!t) { t = spawnBalloon(G.target); t.style.animationDuration = '7s'; }
+    t.classList.add('hint');
+    setTimeout(function () { if (gen === G.gen) speakTarget(G); }, 1600);
+    G.timer = setTimeout(function () {
+      if (gen !== G.gen) return;
+      var tb = G.sky.querySelector('[data-key="' + G.target + '"]');
+      if (tb) { sparks(tb); if (tb.parentNode) tb.parentNode.removeChild(tb); audio.pop(); }
+      G.bubble.classList.remove('on');
+      setMood('idle');
+      G.timer = setTimeout(nextPopRound, 2000);
+    }, 3400);
   }
 
   function popFinale(gen) {
     G.locked = true;
     G.target = null;
-    clearInterval(G.spawn);
+    clearTimeout(G.spawnT);
+    var bonus = G.firstTry >= 4 ? 2 : 1;
     G.dots.innerHTML = '';
     for (var i = 0; i < ROUNDS; i++) G.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     Array.prototype.forEach.call(G.sky.children, function (b, i) {
       setTimeout(function () { if (gen === G.gen && b.parentNode) { sparks(b); audio.pop(); b.parentNode.removeChild(b); } }, 200 + i * 250);
     });
-    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(2, G.fx); } }, 400);
+    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); } }, 400);
     G.timer = setTimeout(function () {
       if (gen !== G.gen) return;
       leavePop(); buildMenu(); show('menu');
