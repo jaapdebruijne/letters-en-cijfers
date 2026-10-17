@@ -17,6 +17,7 @@ Folder audio/phrases/
   welkom.mp3     when a child picks their cat      e.g. "Hoi! Leuk dat je er bent!"
   kies.mp3       when the choice screen opens      e.g. "Wat gaan we oefenen?"
   kijk.mp3       before the cat shows the stroke   e.g. "Kijk, zo gaat het!"
+  hoeveel.mp3    counting game, each new round     e.g. "Hoeveel zijn het?"
   goed-1.mp3 ... goed-5.mp3        after a success   e.g. "Goed zo!", "Super!", "Wat knap!"
   nogeens-1.mp3 ... nogeens-3.mp3  after a try that did not work   e.g. "Probeer het nog eens!"
 

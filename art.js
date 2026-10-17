@@ -193,6 +193,15 @@
         '<g class="mag"><circle cx="122" cy="156" r="56" fill="#ffffff" fill-opacity="0.28" stroke="#ff7a59" stroke-width="13"/>' +
         '<path d="M 164 198 L 212 258" stroke="#ff7a59" stroke-width="20" stroke-linecap="round"/>' +
         '<path d="M 88 128 C 96 112 110 104 124 102" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.9"/></g>';
+    } else if (kind === 'count') {
+      var star = function (x, y, s, n) {
+        return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><g class="cstar">' +
+          '<polygon points="0,-44 11,-14 43,-14 17,5 27,37 0,17 -27,37 -17,5 -43,-14 -11,-14" fill="#ffd23f" stroke="#fff" stroke-width="6" stroke-linejoin="round"/></g></g>' +
+          '<circle cx="' + x + '" cy="' + (y + 56 * s) + '" r="' + (21 * s) + '" fill="#fff"/>' + glyphIn(String(n), x - 13 * s, y + 56 * s - 18 * s, 26 * s, 36 * s, 17);
+      };
+      body = sparkle(34, 44, 1.2) + sparkle(206, 38, 1.0) + sparkle(120, 270, 1.1) +
+        '<circle cx="120" cy="70" r="42" fill="#fff"/>' + glyphIn('3', 96, 40, 48, 60, 14) +
+        star(52, 168, 0.8, 1) + star(120, 150, 0.9, 2) + star(188, 168, 0.8, 3);
     } else {
       body = sparkle(30, 40, 1.3) + sparkle(212, 36, 1.0) + sparkle(120, 270, 1.2) +
         '<g class="bb b1">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[0], 'A', [10, 76, 80, 133]) + '</g>' +
@@ -200,6 +209,16 @@
         '<g class="bb b3">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[1], 'P', [152, 88, 76, 127]) + '</g>';
     }
     return head + body + '</svg>';
+  };
+
+  // The things a child counts in the counting game.
+  LC.countItemSVG = function (kind, color) {
+    if (kind === 'balloon') return LC.balloonSVG(color);
+    var shape;
+    if (kind === 'star') shape = '<polygon points="50,5 62,38 96,38 68,59 79,93 50,72 21,93 32,59 4,38 38,38" fill="' + color + '" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>';
+    else if (kind === 'heart') shape = '<path d="M 50 92 C 8 62 6 24 31 19 C 44 17 50 28 50 28 C 50 28 56 17 69 19 C 94 24 92 62 50 92 Z" fill="' + color + '" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>';
+    else shape = '<g fill="' + color + '" stroke="#fff" stroke-width="3"><circle cx="50" cy="23" r="18"/><circle cx="74" cy="37" r="18"/><circle cx="74" cy="63" r="18"/><circle cx="50" cy="77" r="18"/><circle cx="26" cy="63" r="18"/><circle cx="26" cy="37" r="18"/></g><circle cx="50" cy="50" r="14" fill="#ffd23f" stroke="#fff" stroke-width="3"/>';
+    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + shape + '</svg>';
   };
 
   LC.balloonIconSVG = function () {

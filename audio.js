@@ -109,7 +109,7 @@
         var s = LC.GLYPHS[k].sound;
         if (!seen[s]) { seen[s] = 1; clipUrl('audio/letters/' + s + '.mp3'); }
       });
-      ['welkom', 'kies', 'kijk'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
+      ['welkom', 'kies', 'kijk', 'hoeveel'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
       for (var i = 1; i <= PRAISE_COUNT; i++) clipUrl('audio/phrases/goed-' + i + '.mp3');
       for (var j = 1; j <= RETRY_COUNT; j++) clipUrl('audio/phrases/nogeens-' + j + '.mp3');
     },
@@ -123,6 +123,13 @@
       if (!ensure()) return;
       var t = ctx.currentTime + 0.02;
       [N.C6, N.E6, N.G6].forEach(function (f, i) { tone(f, t + i * 0.13, 0.9, 0.22, 'sine', sfxGain); });
+    },
+    voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
+    // A rising note for each thing that is counted (1 = low, 9 = high).
+    note: function (i) {
+      if (!ensure()) return;
+      var scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.7, 1318.5, 1568];
+      tone(scale[Math.max(0, Math.min(8, i - 1))], ctx.currentTime + 0.01, 0.5, 0.2, 'sine', sfxGain);
     },
     pop: function () {
       if (!ensure()) return;

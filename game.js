@@ -60,7 +60,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'games', 'shop', 'house', 'menu', 'trace', 'find', 'pop', 'bye'].forEach(function (n) {
+  ['profile', 'games', 'shop', 'house', 'menu', 'trace', 'find', 'pop', 'count', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -97,6 +97,7 @@
     buildTrace();
     buildFind();
     buildPop();
+    buildCount();
     buildGames();
     show('games');
     audio.voiceWelcome();
@@ -125,12 +126,15 @@
     s.appendChild(pill); s.appendChild(houseBtn); s.appendChild(shopBtn);
 
     var row = h('div', 'gcards');
-    [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken']].forEach(function (g, i) {
+    [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken'], ['count', 'Tellen']].forEach(function (g, i) {
       var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0]));
       c.dataset.game = g[0];
       var t = h('div', 'gtitle'); t.textContent = g[1]; c.appendChild(t);
       c.style.animationDelay = (-i * 0.9) + 's';
-      c.addEventListener('click', function () { state.game = g[0]; buildMenu(); show('menu'); });
+      c.addEventListener('click', function () {
+        if (g[0] === 'count') { buildCount(); startCount(); return; }
+        state.game = g[0]; buildMenu(); show('menu');
+      });
       row.appendChild(c);
     });
     s.appendChild(row);
@@ -225,7 +229,7 @@
     var s = scr.menu, key = state.profile, prof = store.get().profiles[key];
     s.textContent = '';
     // The game screens draw their own cat, so redraw them to show the current outfit.
-    buildTrace(); buildFind(); buildPop();
+    buildTrace(); buildFind(); buildPop(); buildCount();
     var sky = h('div', 'sky');
     var n = Math.min(10, store.total(key));
     for (var i = 0; i < n; i++) {
@@ -323,7 +327,7 @@
   }
 
   function setMood(m) {
-    var c = current === 'find' ? F.cat : current === 'pop' ? G.cat : T.cat;
+    var c = current === 'find' ? F.cat : current === 'pop' ? G.cat : current === 'count' ? C.cat : T.cat;
     if (!c) return;
     clearTimeout(moodTimer);
     c.classList.remove('idle', 'happy', 'oops', 'help');
@@ -749,6 +753,143 @@
     }, 5000);
   }
 
+  // ---------- Counting ----------
+  var C = {};
+  var COUNT_KINDS = ['star', 'heart', 'flower', 'balloon'];
+
+  function buildCount() {
+    var s = scr.count;
+    s.textContent = '';
+    var home = h('button', 'home', LC.homeSVG());
+    home.addEventListener('click', function () { leaveCount(); buildGames(); show('games'); audio.voiceChoose(); });
+    var cat = h('div', 'trace-cat', catFor(state.profile, {}));
+    cat.addEventListener('click', function () { audio.voiceHowMany(); });
+    var dots = h('div', 'dots');
+    var field = h('div', 'cfield');
+    var choices = h('div', 'cchoices');
+    var fx = h('div', 'balloons');
+    s.appendChild(home); s.appendChild(cat); s.appendChild(dots); s.appendChild(field); s.appendChild(choices); s.appendChild(fx);
+    C = { cat: cat.querySelector('.cat'), dots: dots, field: field, choices: choices, fx: fx,
+      gen: 0, timer: 0, autoT: 0, n: 0, answer: 0, wrong: 0, counted: 0, locked: true, firstTry: 0 };
+  }
+
+  function leaveCount() {
+    clearTimeout(C.timer); clearTimeout(C.autoT);
+    C.gen++;
+    audio.stopVoice();
+  }
+
+  function startCount() {
+    leaveCount();
+    C.n = 0; C.firstTry = 0; C.answer = 0;
+    show('count');
+    nextCountRound();
+  }
+
+  function markCounted(item) {
+    if (item.classList.contains('counted')) return;
+    item.classList.add('counted');
+    C.counted++;
+    item.appendChild(h('span', 'cbadge', LC.glyphSVG(String(C.counted), { sw: 20 })));
+    audio.note(C.counted);
+  }
+
+  function nextCountRound() {
+    clearTimeout(C.timer); clearTimeout(C.autoT);
+    C.gen++;
+    var gen = C.gen;
+    if (C.n >= ROUNDS) { countFinale(gen); return; }
+    C.n++; C.wrong = 0; C.locked = false; C.counted = 0;
+
+    // The amounts grow: 1-3 first, then up to 6, then up to 9.
+    var lo = C.n <= 2 ? 1 : 2, hi = C.n <= 2 ? 3 : C.n <= 4 ? 6 : 9, ans;
+    do { ans = lo + Math.floor(Math.random() * (hi - lo + 1)); } while (ans === C.answer);
+    C.answer = ans;
+
+    C.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) C.dots.appendChild(h('span', 'dot' + (i < C.n - 1 ? ' on' : i === C.n - 1 ? ' cur' : '')));
+
+    var kind = COUNT_KINDS[Math.floor(Math.random() * COUNT_KINDS.length)];
+    var colors = ['#ff6f91', '#4d96ff', '#ffa62b', '#4cc26b', '#9b72ff', '#12b5a6'];
+    var color = colors[Math.floor(Math.random() * colors.length)];
+    var cells = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]).slice(0, ans);
+    C.field.innerHTML = '';
+    C.field.className = 'cfield ' + (ans <= 3 ? 'big' : ans <= 6 ? 'mid' : '');
+    cells.forEach(function (cell) {
+      var it = h('button', 'citem', LC.countItemSVG(kind, color));
+      it.style.left = (7 + (cell % 3) * 30 + Math.random() * 5) + '%';
+      it.style.top = (6 + Math.floor(cell / 3) * 30 + Math.random() * 5) + '%';
+      it.addEventListener('pointerdown', function (e) { e.preventDefault(); if (!C.locked) markCounted(it); });
+      C.field.appendChild(it);
+    });
+
+    // Answers: the right number and two close ones, so guessing is not enough.
+    var near = [];
+    for (var d = -2; d <= 2; d++) { var v = ans + d; if (d !== 0 && v >= 1 && v <= 9) near.push(v); }
+    var opts = [ans].concat(shuffle(near).slice(0, 2));
+    C.choices.innerHTML = '';
+    shuffle(opts).forEach(function (num) {
+      var b = h('button', 'cchoice', LC.glyphSVG(String(num), { sw: 14 }));
+      b.dataset.num = String(num);
+      b.addEventListener('click', function () { chooseCount(b, num, gen); });
+      C.choices.appendChild(b);
+    });
+    setMood('idle');
+    C.timer = setTimeout(function () { if (gen === C.gen) audio.voiceHowMany(); }, 500);
+  }
+
+  // The cat counts along, one by one, to show how it goes.
+  function autoCount(gen) {
+    var items = Array.prototype.filter.call(C.field.children, function (it) { return !it.classList.contains('counted'); });
+    items.forEach(function (it, i) {
+      C.autoT = setTimeout(function () { if (gen === C.gen) markCounted(it); }, 400 + i * 550);
+    });
+  }
+
+  function chooseCount(btn, num, gen) {
+    if (gen !== C.gen || C.locked) return;
+    if (num === C.answer) {
+      C.locked = true;
+      clearTimeout(C.autoT);
+      btn.classList.add('right');
+      Array.prototype.forEach.call(C.choices.children, function (c) { if (c !== btn) c.classList.add('fade'); });
+      Array.prototype.forEach.call(C.field.children, function (it) { markCounted(it); });
+      setMood('happy');
+      audio.chime();
+      setTimeout(function () { if (gen === C.gen) audio.voiceLetter(String(num)); }, 500);
+      if (C.wrong === 0) { C.firstTry++; gain(1, C.fx); }
+      burst(C.fx);
+      C.timer = setTimeout(nextCountRound, 4600);
+      return;
+    }
+    C.wrong++;
+    btn.classList.add('fade');
+    btn.disabled = true;
+    setMood('oops');
+    audio.boop();
+    audio.voiceRetry();
+    if (C.wrong >= 2) {
+      var right = C.choices.querySelector('[data-num="' + C.answer + '"]');
+      if (right) right.classList.add('hint');
+      autoCount(gen);
+    }
+  }
+
+  function countFinale(gen) {
+    C.locked = true;
+    var bonus = C.firstTry >= 4 ? 2 : 1;
+    C.field.innerHTML = ''; C.choices.innerHTML = '';
+    C.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) C.dots.appendChild(h('span', 'dot on'));
+    setMood('happy');
+    audio.chime(); burst(C.fx);
+    setTimeout(function () { if (gen === C.gen) { audio.chime(); burst(C.fx); gain(bonus, C.fx); } }, 1200);
+    C.timer = setTimeout(function () {
+      if (gen !== C.gen) return;
+      leaveCount(); buildGames(); show('games');
+    }, 5000);
+  }
+
   // ---------- Goodbye ----------
   function buildBye() {
     var s = scr.bye;
@@ -764,6 +905,7 @@
     leaveTrace();
     leaveFind();
     leavePop();
+    leaveCount();
     audio.setMusic(false);
     buildBye();
     show('bye');
@@ -793,7 +935,8 @@
   }
   function closeAndResume() {
     closeModal();
-    if (current === 'pop') startPop(G.kind);
+    if (current === 'count') startCount();
+    else if (current === 'pop') startPop(G.kind);
     else if (current === 'find') startFind(F.kind);
     else if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
     else if (current === 'games') buildGames();

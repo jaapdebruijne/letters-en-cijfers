@@ -54,15 +54,16 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .games-cat { position: absolute; left: 1.5vw; bottom: 4vh; width: 19vw; text-align: center; }
 .games-cat .cat { height: 46vh; margin: 0 auto; }
 .gcards { position: absolute; left: 25vw; right: 2vw; top: 50%; transform: translateY(-50%); display: flex; gap: 2vw; justify-content: center; }
-.gcard { width: 22.5vw; height: 78vh; border-radius: 6vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
+.gcard { width: 17vw; height: 68vh; border-radius: 6vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
   overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-bottom: 2.2vh;
   animation: wiggle 3.6s ease-in-out infinite; transition: transform 0.12s; }
 .gcard:active { transform: scale(0.95); animation: none; }
 .gc-trace { background: linear-gradient(165deg, #ffe58a, #ff9f43); }
 .gc-find { background: linear-gradient(165deg, #a8f5d9, #38bdf8); }
 .gc-pop { background: linear-gradient(165deg, #ffc2e2, #a78bfa); }
-.gart { width: 100%; height: 62vh; display: block; }
-.gtitle { background: #fff; color: #4a3f63; font-size: 4.8vh; font-weight: 800; border-radius: 4vh; padding: 0.8vh 2.4vw; box-shadow: 0 0.6vh 0 rgba(90, 60, 140, 0.18); }
+.gc-count { background: linear-gradient(165deg, #ffd1b8, #ff7a8a); }
+.gart { width: 100%; flex: 1; min-height: 0; display: block; }
+.gtitle { background: #fff; color: #4a3f63; font-size: 4vh; font-weight: 800; border-radius: 4vh; padding: 0.8vh 1.6vw; box-shadow: 0 0.6vh 0 rgba(90, 60, 140, 0.18); }
 @keyframes wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(-0.8vh); } }
 .gart .pencil { transform-box: fill-box; transform-origin: 50% 100%; animation: scribble 1.3s ease-in-out infinite; }
 @keyframes scribble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(7deg); } }
@@ -189,6 +190,28 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .choice.hint { animation: glow 1s ease-in-out infinite; }
 @keyframes hop2 { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-2.4vh); } }
 @keyframes glow { 0%, 100% { box-shadow: 0 0 0 0.6vh #ffd166; } 50% { box-shadow: 0 0 0 1.8vh #ffd166; } }
+
+/* counting */
+.cfield { position: absolute; left: 62%; top: 11vh; transform: translateX(-50%); width: 52vw; height: 50vh; background: rgba(255, 255, 255, 0.9);
+  border-radius: 5vh; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.14); }
+.citem { position: absolute; width: 13vh; height: 13vh; padding: 0; transition: transform 0.15s; }
+.citem svg { width: 100%; height: 100%; display: block; }
+.cfield.big .citem { width: 19vh; height: 19vh; }
+.cfield.mid .citem { width: 15vh; height: 15vh; }
+.citem.counted { animation: hop2 0.45s ease-out; }
+.citem.counted svg { filter: drop-shadow(0 0 1vh #fff) drop-shadow(0 0 0.6vh #ffd166); }
+.cbadge { position: absolute; left: 50%; bottom: -1.4vh; transform: translateX(-50%); width: 6.4vh; height: 6.4vh; border-radius: 50%; background: #fff;
+  box-shadow: 0 0.5vh 0 rgba(120, 90, 160, 0.2); display: flex; align-items: center; justify-content: center; }
+.cbadge .glyph { height: 4.2vh; width: auto; }
+.cchoices { position: absolute; left: 62%; transform: translateX(-50%); bottom: 2.5vh; display: flex; gap: 3vw; }
+.cchoice { width: 19vh; height: 24vh; border-radius: 4vh; background: #fff; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.16);
+  display: flex; align-items: center; justify-content: center; transition: opacity 0.4s, transform 0.2s; }
+.cchoice .glyph { height: 16vh; width: auto; }
+.cchoice:active { transform: scale(0.96); }
+.cchoice.fade { opacity: 0.25; pointer-events: none; }
+.cchoice.right { box-shadow: 0 0 0 1.2vh #8fd39b; animation: hop2 0.6s ease-out 2; }
+.cchoice.hint { animation: glow 1s ease-in-out infinite; }
+.gart .cstar { transform-box: fill-box; transform-origin: 50% 50%; animation: twinkle 1.8s ease-in-out infinite; }
 
 /* pop the balloon */
 .popsky { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
