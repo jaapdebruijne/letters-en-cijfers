@@ -7,7 +7,7 @@
   var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', done: {}, stats: {}, time: {}, stars: 0, tickets: 0, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
+    return { name: '', done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
   }
 
   function fresh() {
@@ -45,6 +45,7 @@
               if (/^\d{4}-\d{2}-\d{2}$/.test(day) && isFinite(p.time[day])) out.time[day] = Math.max(0, Math.min(86400, Math.floor(p.time[day])));
             });
           }
+          if (p.mathMax === 10) out.mathMax = 10;
           if (isFinite(p.stars)) out.stars = Math.max(0, Math.min(99999, Math.floor(p.stars)));
           if (isFinite(p.tickets)) out.tickets = Math.max(0, Math.min(99, Math.floor(p.tickets)));
           if (Array.isArray(p.owned)) {
@@ -121,6 +122,8 @@
       dirty = true;
     },
     flush: function () { if (dirty) { dirty = false; save(); } },
+    mathMax: function (profile) { return get().profiles[profile].mathMax; },
+    setMath: function (profile, v) { get().profiles[profile].mathMax = v === 10 ? 10 : 5; save(); },
     stars: function (profile) { return get().profiles[profile].stars; },
     addStars: function (profile, n) {
       var p = get().profiles[profile];
@@ -159,7 +162,7 @@
     resetProgress: function () {
       PROFILES.forEach(function (k) {
         var p = get().profiles[k];
-        p.done = {}; p.stats = {}; p.time = {}; p.stars = 0; p.tickets = 0; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
+        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
       });
       save();
     }

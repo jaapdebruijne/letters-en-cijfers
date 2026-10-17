@@ -54,7 +54,7 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .games-cat { position: absolute; left: 1.5vw; bottom: 4vh; width: 19vw; text-align: center; }
 .games-cat .cat { height: 46vh; margin: 0 auto; }
 .gcards { position: absolute; left: 25vw; right: 2vw; top: 50%; transform: translateY(-50%); display: flex; gap: 2vw; justify-content: center; }
-.gcard { width: 17vw; height: 68vh; border-radius: 6vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
+.gcard { width: 13.4vw; height: 68vh; border-radius: 6vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
   overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-bottom: 2.2vh;
   animation: wiggle 3.6s ease-in-out infinite; transition: transform 0.12s; }
 .gcard:active { transform: scale(0.95); animation: none; }
@@ -62,8 +62,9 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .gc-find { background: linear-gradient(165deg, #a8f5d9, #38bdf8); }
 .gc-pop { background: linear-gradient(165deg, #ffc2e2, #a78bfa); }
 .gc-count { background: linear-gradient(165deg, #ffd1b8, #ff7a8a); }
+.gc-math { background: linear-gradient(165deg, #dcf7a8, #4fc9a4); }
 .gart { width: 100%; flex: 1; min-height: 0; display: block; }
-.gtitle { background: #fff; color: #4a3f63; font-size: 4vh; font-weight: 800; border-radius: 4vh; padding: 0.8vh 1.6vw; box-shadow: 0 0.6vh 0 rgba(90, 60, 140, 0.18); }
+.gtitle { background: #fff; color: #4a3f63; font-size: 3.4vh; font-weight: 800; border-radius: 4vh; padding: 0.8vh 1.1vw; box-shadow: 0 0.6vh 0 rgba(90, 60, 140, 0.18); }
 @keyframes wiggle { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(-0.8vh); } }
 .gart .pencil { transform-box: fill-box; transform-origin: 50% 100%; animation: scribble 1.3s ease-in-out infinite; }
 @keyframes scribble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(7deg); } }
@@ -262,6 +263,30 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .cchoice.right { box-shadow: 0 0 0 1.2vh #8fd39b; animation: hop2 0.6s ease-out 2; }
 .cchoice.hint { animation: glow 1s ease-in-out infinite; }
 .gart .cstar { transform-box: fill-box; transform-origin: 50% 50%; animation: twinkle 1.8s ease-in-out infinite; }
+
+/* rekenen */
+.bubble.txt { width: auto; min-width: 17vh; height: 11vh; padding: 0 2.2vh; border-radius: 6vh; font-size: 4.6vh; font-weight: 800; color: #7c5cd6; white-space: nowrap; }
+.mfield { position: absolute; left: 62%; top: 11vh; transform: translateX(-50%); width: 52vw; height: 50vh; background: rgba(255, 255, 255, 0.9);
+  border-radius: 5vh; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.14); }
+.mplus { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 14vh; font-weight: 900; color: #7c5cd6; line-height: 1; }
+.mcards { position: absolute; left: 62%; top: 11vh; transform: translateX(-50%); gap: 3vw; }
+.mgroup { position: relative; width: 25vw; height: 50vh; background: #fff; border-radius: 5vh; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.16); padding: 0; transition: opacity 0.4s, transform 0.2s; }
+.mgroup:active { transform: scale(0.98); }
+.mgroup.fade { opacity: 0.25; pointer-events: none; }
+.mgroup.right { box-shadow: 0 0 0 1.2vh #8fd39b; animation: hop2 0.6s ease-out 2; }
+.mgroup.hint { animation: glow 1s ease-in-out infinite; }
+.mitem { position: absolute; width: 8.5vh; height: 8.5vh; pointer-events: none; }
+.mitem svg { width: 100%; height: 100%; display: block; }
+.mgroup.big .mitem { width: 11vh; height: 11vh; }
+.mgroup.small .mitem { width: 8vh; height: 8vh; }
+.mfield .mitem { width: 8.6vh; height: 8.6vh; }
+.mitem.tap { pointer-events: auto; }
+.mitem.counted svg { filter: drop-shadow(0 0 0.8vh #fff) drop-shadow(0 0 0.5vh #ffd166); }
+.mitem.counted { animation: hop2 0.45s ease-out; }
+.mitem .cbadge { width: 5.2vh; height: 5.2vh; bottom: -1.2vh; }
+.mitem .cbadge .glyph { height: 3.4vh; width: auto; }
+.cbadge.wide { width: 8.4vh; border-radius: 3.2vh; }
+.tstar { font-size: 9vh; color: #ffc83d; }
 
 /* pop the balloon */
 .popsky { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }

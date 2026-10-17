@@ -198,6 +198,16 @@
         '<g class="mag"><circle cx="122" cy="156" r="56" fill="#ffffff" fill-opacity="0.28" stroke="#ff7a59" stroke-width="13"/>' +
         '<path d="M 164 198 L 212 258" stroke="#ff7a59" stroke-width="20" stroke-linecap="round"/>' +
         '<path d="M 88 128 C 96 112 110 104 124 102" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.9"/></g>';
+    } else if (kind === 'math') {
+      var dotRow = function (x, y, n, col) {
+        var o = '';
+        for (var i = 0; i < n; i++) o += '<circle cx="' + (x + i * 30) + '" cy="' + y + '" r="12" fill="' + col + '" stroke="#fff" stroke-width="4"/>';
+        return o;
+      };
+      body = sparkle(34, 48, 1.2) + sparkle(206, 44, 1.0) + sparkle(120, 272, 1.1) +
+        '<rect x="28" y="64" width="184" height="88" rx="22" fill="#fff"/>' +
+        dotRow(52, 108, 2, '#ff6f91') + '<path d="M 112 108 L 128 108 M 120 100 L 120 116" stroke="#7c5cd6" stroke-width="7" stroke-linecap="round"/>' + dotRow(150, 108, 3, '#4d96ff') +
+        '<g class="mag"><circle cx="120" cy="210" r="40" fill="#fff"/></g>' + glyphIn('5', 98, 182, 44, 56, 14);
     } else if (kind === 'count') {
       var star = function (x, y, s, n) {
         return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')"><g class="cstar">' +
@@ -214,6 +224,14 @@
         '<g class="bb b3">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[1], L[2], [152, 88, 76, 127]) + '</g>';
     }
     return head + body + '</svg>';
+  };
+
+  // A number as a picture; 10 is drawn as a 1 and a 0 next to each other.
+  LC.numberSVG = function (n, opts) {
+    if (n < 10) return LC.glyphSVG(String(n), opts);
+    var sw = (opts && opts.sw) || 14;
+    return '<svg class="glyph" viewBox="0 0 250 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      glyphIn('1', 0, 0, 110, 160, sw) + glyphIn('0', 130, 0, 110, 160, sw) + '</svg>';
   };
 
   // The things a child counts in the counting game.

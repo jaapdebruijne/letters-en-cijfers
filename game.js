@@ -74,7 +74,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'games', 'shop', 'house', 'ride', 'menu', 'trace', 'find', 'pop', 'count', 'switch', 'bye'].forEach(function (n) {
+  ['profile', 'games', 'shop', 'house', 'ride', 'menu', 'trace', 'find', 'pop', 'count', 'math', 'switch', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -134,7 +134,7 @@
       var n = R.ride.collected();
       if (n > 0) store.addStars(state.profile, n);
     }
-    leaveTrace(); leaveFind(); leavePop(); leaveCount(); stopRide();
+    leaveTrace(); leaveFind(); leavePop(); leaveCount(); leaveMath(); stopRide();
   }
 
   function startSwitch() {
@@ -195,6 +195,7 @@
     buildFind();
     buildPop();
     buildCount();
+    buildMath();
     buildGames();
     show('games');
     audio.voiceWelcome();
@@ -231,13 +232,14 @@
     s.appendChild(pill); s.appendChild(carBtn); s.appendChild(houseBtn); s.appendChild(shopBtn);
 
     var row = h('div', 'gcards');
-    [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken'], ['count', 'Tellen']].forEach(function (g, i) {
+    [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken'], ['count', 'Tellen'], ['math', 'Rekenen']].forEach(function (g, i) {
       var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0], !capsOn()));
       c.dataset.game = g[0];
       var t = h('div', 'gtitle'); t.textContent = g[1]; c.appendChild(t);
       c.style.animationDelay = (-i * 0.9) + 's';
       c.addEventListener('click', function () {
         if (g[0] === 'count') { buildCount(); startCount(); return; }
+        if (g[0] === 'math') { buildMath(); startMath(); return; }
         state.game = g[0]; buildMenu(); show('menu');
       });
       row.appendChild(c);
@@ -336,7 +338,7 @@
     var s = scr.menu, key = state.profile, prof = store.get().profiles[key];
     s.textContent = '';
     // The game screens draw their own cat, so redraw them to show the current outfit.
-    buildTrace(); buildFind(); buildPop(); buildCount();
+    buildTrace(); buildFind(); buildPop(); buildCount(); buildMath();
     var sky = h('div', 'sky');
     var n = Math.min(10, store.total(key));
     for (var i = 0; i < n; i++) {
@@ -435,7 +437,7 @@
   }
 
   function setMood(m) {
-    var c = current === 'find' ? F.cat : current === 'pop' ? G.cat : current === 'count' ? C.cat : T.cat;
+    var c = current === 'find' ? F.cat : current === 'pop' ? G.cat : current === 'count' ? C.cat : current === 'math' ? M.cat : T.cat;
     if (!c) return;
     clearTimeout(moodTimer);
     c.classList.remove('idle', 'happy', 'oops', 'help');
@@ -1086,6 +1088,228 @@
     R = null;
   }
 
+  // ---------- Rekenen: more or less, and adding ----------
+  // Starts with numbers up to 5. Three rounds in a row right first time: up to 10.
+  // Two rounds in a row with mistakes at 10: back to 5. The level is kept per child.
+  var M = {};
+
+  function rnd(n) { return Math.floor(Math.random() * n); }
+
+  function buildMath() {
+    var s = scr.math;
+    s.textContent = '';
+    var home = h('button', 'home', LC.homeSVG());
+    home.addEventListener('click', function () { leaveMath(); buildGames(); show('games'); audio.voiceChoose(); });
+    var cat = h('div', 'trace-cat', catFor(state.profile, {}));
+    var bubble = h('div', 'bubble txt');
+    cat.appendChild(bubble);
+    cat.addEventListener('click', function () { sayMath(); });
+    var dots = h('div', 'dots');
+    var field = h('div', 'mfield');
+    var cards = h('div', 'mcards');
+    var choices = h('div', 'cchoices');
+    var fx = h('div', 'balloons');
+    s.appendChild(home); s.appendChild(cat); s.appendChild(dots); s.appendChild(field); s.appendChild(cards); s.appendChild(choices); s.appendChild(fx);
+    M = { cat: cat.querySelector('.cat'), bubble: bubble, dots: dots, field: field, cards: cards, choices: choices, fx: fx,
+      gen: 0, timer: 0, autoT: 0, n: 0, type: 'meer', answer: 0, big: 0, wrong: 0, counted: 0, locked: true,
+      firstTry: 0, streak: 0, missRounds: 0, max: 5, used: {}, prevAns: 0 };
+  }
+
+  function leaveMath() {
+    clearTimeout(M.timer); clearTimeout(M.autoT);
+    M.gen++;
+    audio.stopVoice();
+  }
+
+  function startMath() {
+    leaveMath();
+    M.n = 0; M.firstTry = 0; M.streak = 0; M.missRounds = 0; M.used = {}; M.prevAns = 0;
+    M.max = store.mathMax(state.profile);
+    show('math');
+    nextMathRound();
+  }
+
+  function sayMath() {
+    M.bubble.textContent = M.type === 'meer' ? 'Meer?' : 'Samen?';
+    M.bubble.classList.add('on');
+    audio.voiceMath(M.type);
+  }
+
+  // Put n items of one kind in a box, on a grid, at random spots. Returns the item elements.
+  function fillGroup(box, n, kind, color, cols, rows, left, width, top, height) {
+    var cells = shuffle(Array.apply(null, { length: cols * rows }).map(function (_, i) { return i; })).slice(0, n), els = [];
+    cells.forEach(function (cell) {
+      var it = h('div', 'mitem', LC.countItemSVG(kind, color));
+      it.style.left = (left + (cell % cols) * (width / cols)) + '%';
+      it.style.top = (top + Math.floor(cell / cols) * (height / rows)) + '%';
+      box.appendChild(it); els.push(it);
+    });
+    return els;
+  }
+
+  function numberItems(els, startAt) {
+    els.forEach(function (it, i) {
+      if (it.classList.contains('counted')) return;
+      it.classList.add('counted');
+      it.appendChild(h('span', 'cbadge' + (startAt + i >= 10 ? ' wide' : ''), LC.numberSVG(startAt + i, { sw: 20 })));
+    });
+  }
+
+  function nextMathRound() {
+    clearTimeout(M.timer); clearTimeout(M.autoT);
+    M.gen++;
+    var gen = M.gen;
+    if (M.n >= ROUNDS) { mathFinale(gen); return; }
+    M.n++; M.wrong = 0; M.locked = false; M.counted = 0;
+    M.type = M.n % 2 === 1 ? 'meer' : 'erbij';
+    M.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) M.dots.appendChild(h('span', 'dot' + (i < M.n - 1 ? ' on' : i === M.n - 1 ? ' cur' : '')));
+    M.field.innerHTML = ''; M.cards.innerHTML = ''; M.choices.innerHTML = '';
+    M.field.style.display = M.type === 'erbij' ? 'block' : 'none';
+    M.cards.style.display = M.type === 'meer' ? 'flex' : 'none';
+    var kinds = ['star', 'heart', 'flower', 'balloon'], colors = ['#ff6f91', '#4d96ff', '#ffa62b', '#4cc26b', '#9b72ff', '#12b5a6'];
+    var kind = kinds[rnd(kinds.length)], color = colors[rnd(colors.length)];
+
+    if (M.type === 'meer') {
+      var a, b, tries = 0, gap = M.n <= 2 && M.max >= 4 ? 2 : 1;
+      do { a = 1 + rnd(M.max); b = 1 + rnd(M.max); tries++; } while ((a === b || Math.abs(a - b) < gap) && tries < 80);
+      if (a === b) b = a % M.max + 1;
+      M.big = a > b ? 0 : 1;
+      [a, b].forEach(function (cnt, idx) {
+        var card = h('button', 'mgroup'), els;
+        var cols = cnt <= 6 ? 3 : 5, rows = 2;
+        card.className = 'mgroup ' + (cols === 3 ? 'big' : 'small');
+        els = fillGroup(card, cnt, kind, color, cols, rows, 6, 86, 10, 74);
+        card.dataset.count = String(cnt);
+        card._els = els;
+        card.addEventListener('click', function () { chooseMore(card, idx, gen); });
+        M.cards.appendChild(card);
+      });
+    } else {
+      var ans, range = [], v;
+      for (v = 2; v <= M.max; v++) range.push(String(v));
+      ans = Number(pickTarget(range, String(M.prevAns), M.used));
+      M.used[String(ans)] = 1; M.prevAns = ans; M.answer = ans;
+      var ea = 1 + rnd(ans - 1), eb = ans - ea;
+      var kindB = kinds[(kinds.indexOf(kind) + 1 + rnd(3)) % kinds.length], colorB = colors[(colors.indexOf(color) + 1 + rnd(5)) % colors.length];
+      var elsA = fillGroup(M.field, ea, kind, color, 3, 3, 3, 36, 10, 74);
+      var elsB = fillGroup(M.field, eb, kindB, colorB, 3, 3, 61, 36, 10, 74);
+      var plus = h('div', 'mplus'); plus.textContent = '+'; M.field.appendChild(plus);
+      M.all = elsA.concat(elsB);
+      M.all.forEach(function (it) {
+        it.className = 'mitem tap';
+        it.addEventListener('pointerdown', function (e) { e.preventDefault(); if (!M.locked) markMath(it); });
+      });
+      var near = [];
+      for (var d = -2; d <= 2; d++) { var w = ans + d; if (d !== 0 && w >= 1 && w <= 10) near.push(w); }
+      shuffle([ans].concat(shuffle(near).slice(0, 2))).forEach(function (num) {
+        var bt = h('button', 'cchoice', LC.numberSVG(num, { sw: 14 }));
+        bt.dataset.num = String(num);
+        bt.addEventListener('click', function () { chooseSum(bt, num, gen); });
+        M.choices.appendChild(bt);
+      });
+    }
+    setMood('idle');
+    M.bubble.textContent = M.type === 'meer' ? 'Meer?' : 'Samen?';
+    M.bubble.classList.add('on');
+    M.timer = setTimeout(function () { if (gen === M.gen) audio.voiceMath(M.type); }, 500);
+  }
+
+  function markMath(it) {
+    if (it.classList.contains('counted')) return;
+    it.classList.add('counted');
+    M.counted++;
+    it.appendChild(h('span', 'cbadge' + (M.counted >= 10 ? ' wide' : ''), LC.numberSVG(M.counted, { sw: 20 })));
+    audio.note(M.counted);
+  }
+
+  // A round is over: stars, and the smart level.
+  function mathRoundDone(gen) {
+    audio.chime();
+    setMood('happy');
+    burst(M.fx);
+    if (M.wrong === 0) { M.firstTry++; M.streak++; M.missRounds = 0; gain(1, M.fx); } else { M.streak = 0; M.missRounds++; }
+    if (M.max === 5 && M.streak >= 3) {
+      M.max = 10; store.setMath(state.profile, 10);
+      var t = h('div', 'ticket-toast', '<span class="tstar">★</span><span>Tot 10!</span>');
+      M.fx.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3600);
+    } else if (M.max === 10 && M.missRounds >= 2) {
+      M.max = 5; store.setMath(state.profile, 5); M.missRounds = 0;
+    }
+    M.timer = setTimeout(function () { if (gen === M.gen) nextMathRound(); }, 4200);
+  }
+
+  function chooseMore(card, idx, gen) {
+    if (gen !== M.gen || M.locked) return;
+    if (idx === M.big) {
+      M.locked = true;
+      card.classList.add('right');
+      Array.prototype.forEach.call(M.cards.children, function (c) {
+        if (c !== card) c.classList.add('fade');
+        numberItems(c._els, 1);
+      });
+      mathRoundDone(gen);
+      return;
+    }
+    M.wrong++;
+    card.classList.add('fade');
+    card.disabled = true;
+    setMood('oops');
+    audio.boop();
+    audio.voiceRetry();
+    // The other group lights up and both are counted out, one after the other.
+    Array.prototype.forEach.call(M.cards.children, function (c) {
+      if (c !== card) c.classList.add('hint');
+      c._els.forEach(function (it, i) { M.autoT = setTimeout(function () { if (gen === M.gen) numberItems([it], i + 1); }, 300 + i * 260); });
+    });
+  }
+
+  function chooseSum(btn, num, gen) {
+    if (gen !== M.gen || M.locked) return;
+    if (num === M.answer) {
+      if (M.answer <= 9) store.record(state.profile, String(M.answer), M.wrong === 0 ? 'first' : 'ask');
+      M.locked = true;
+      clearTimeout(M.autoT);
+      btn.classList.add('right');
+      Array.prototype.forEach.call(M.choices.children, function (c) { if (c !== btn) c.classList.add('fade'); });
+      M.all.forEach(function (it) { markMath(it); });
+      mathRoundDone(gen);
+      return;
+    }
+    M.wrong++;
+    if (M.answer <= 9) store.record(state.profile, String(M.answer), 'miss');
+    btn.classList.add('fade');
+    btn.disabled = true;
+    setMood('oops');
+    audio.boop();
+    audio.voiceRetry();
+    if (M.wrong >= 2) {
+      var right = M.choices.querySelector('[data-num="' + M.answer + '"]');
+      if (right) right.classList.add('hint');
+      M.all.filter(function (it) { return !it.classList.contains('counted'); }).forEach(function (it, i) {
+        M.autoT = setTimeout(function () { if (gen === M.gen) markMath(it); }, 400 + i * 520);
+      });
+    }
+  }
+
+  function mathFinale(gen) {
+    M.locked = true;
+    var bonus = M.firstTry >= 4 ? 2 : 1;
+    if (M.max === 5 && M.firstTry >= 5) { M.max = 10; store.setMath(state.profile, 10); }
+    M.field.innerHTML = ''; M.cards.innerHTML = ''; M.choices.innerHTML = '';
+    M.bubble.classList.remove('on');
+    M.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) M.dots.appendChild(h('span', 'dot on'));
+    setMood('happy');
+    audio.chime(); burst(M.fx);
+    setTimeout(function () { if (gen === M.gen) { audio.chime(); burst(M.fx); gain(bonus, M.fx); if (M.firstTry >= 4) awardTicket(M.fx); } }, 1200);
+    M.timer = setTimeout(function () {
+      if (gen !== M.gen) return;
+      leaveMath(); buildGames(); show('games');
+    }, 5000);
+  }
+
   // ---------- Goodbye ----------
   function buildBye() {
     var s = scr.bye;
@@ -1102,6 +1326,7 @@
     leaveFind();
     leavePop();
     leaveCount();
+    leaveMath();
     stopRide();
     audio.setMusic(false);
     buildBye();
@@ -1132,7 +1357,8 @@
   }
   function closeAndResume() {
     closeModal();
-    if (current === 'count') startCount();
+    if (current === 'math') startMath();
+    else if (current === 'count') startCount();
     else if (current === 'pop') startPop(G.kind);
     else if (current === 'find') startFind(F.kind);
     else if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
@@ -1301,7 +1527,7 @@
 
     var today = Math.round((p.time[store.dayKey(0)] || 0) / 60);
     var info = h('div', 'pinfo');
-    ['★ ' + p.stars + ' sterren', 'Bonuskaartjes: ' + p.tickets, 'Vandaag gespeeld: ' + today + ' min'].forEach(function (t) {
+    ['★ ' + p.stars + ' sterren', 'Bonuskaartjes: ' + p.tickets, 'Rekenen: tot ' + p.mathMax, 'Vandaag gespeeld: ' + today + ' min'].forEach(function (t) {
       var sp = h('span'); sp.textContent = t; info.appendChild(sp);
     });
     card.appendChild(info);

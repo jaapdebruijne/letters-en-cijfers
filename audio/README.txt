@@ -19,6 +19,8 @@ Folder audio/phrases/
   kijk.mp3       before the cat shows the stroke   e.g. "Kijk, zo gaat het!"
   hoeveel.mp3    counting game, each new round     e.g. "Hoeveel zijn het?"
   wissel.mp3     when it is the other cat's turn  e.g. "Tijd om te wisselen!"
+  meer.mp3       maths game, "more" round           e.g. "Waar zijn er meer?"
+  erbij.mp3      maths game, "adding" round         e.g. "Hoeveel zijn het samen?"
   goed-1.mp3 ... goed-5.mp3        after a success   e.g. "Goed zo!", "Super!", "Wat knap!"
   nogeens-1.mp3 ... nogeens-3.mp3  after a try that did not work   e.g. "Probeer het nog eens!"
 
