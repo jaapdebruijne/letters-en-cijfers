@@ -496,6 +496,12 @@
       return;
     }
     var nextPos = (state.pos + 1) % list.length, cat = state.cat;
+    // Now and then, instead of the next letter in the row, one that needs extra practice.
+    if (cat !== 'name' && store.get().settings.adaptive && Math.random() < 0.34) {
+      var prof = store.get().profiles[state.profile];
+      var hard = list.filter(function (k) { return k !== key && mastery(prof, k) === 'practice'; });
+      if (hard.length) nextPos = list.indexOf(pickTarget(hard, key));
+    }
     advanceTimer = setTimeout(function () {
       if (mine !== token) return;
       openTrace(cat, nextPos);
@@ -562,7 +568,7 @@
   function startFind(cat) {
     var pool = poolFor(cat);
     if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
-    F.kind = cat; F.pool = pool; F.n = 0; F.target = null; F.first = 0;
+    F.kind = cat; F.pool = pool; F.n = 0; F.target = null; F.first = 0; F.used = {};
     show('find');
     nextRound();
   }
@@ -586,8 +592,8 @@
     if (F.n >= ROUNDS) { findFinale(gen); return; }
     F.n++; F.wrong = 0; F.locked = false;
 
-    var candidates = F.pool.filter(function (k) { return k !== F.target; });
-    var target = candidates[Math.floor(Math.random() * candidates.length)];
+    var target = pickTarget(F.pool, F.target, F.used);
+    F.used[target] = 1;
     var others = shuffle(F.pool.filter(function (k) { return k !== target && !lookalike(k, target); }));
     if (others.length < 2) others = shuffle(F.pool.filter(function (k) { return k !== target; }));
     var options = shuffle([target].concat(others.slice(0, 2)));
@@ -685,7 +691,7 @@
     var pool = poolFor(cat);
     if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
     leavePop();
-    G.kind = cat; G.pool = pool; G.n = 0; G.target = null; G.firstTry = 0;
+    G.kind = cat; G.pool = pool; G.n = 0; G.target = null; G.firstTry = 0; G.used = {};
     show('pop');
     spawnLoop(G.run);
     nextPopRound();
@@ -751,11 +757,11 @@
     G.n++; G.wrong = 0;
 
     // Often the wanted letter is already floating by, otherwise it comes later at a random moment.
-    var cands = G.pool.filter(function (k) { return k !== G.target; });
     var floating = visibleKeys().filter(function (k) { return k !== G.target && G.pool.indexOf(k) >= 0; });
     G.target = floating.length && Math.random() < 0.6
-      ? floating[Math.floor(Math.random() * floating.length)]
-      : cands[Math.floor(Math.random() * cands.length)];
+      ? pickTarget(floating, G.target, G.used)
+      : pickTarget(G.pool, G.target, G.used);
+    G.used[G.target] = 1;
     G.targetDue = Date.now() + (targetCount() ? 0 : 2000 + Math.random() * 3500);
     G.locked = false;
     G.dots.innerHTML = '';
@@ -892,7 +898,7 @@
 
   function startCount() {
     leaveCount();
-    C.n = 0; C.firstTry = 0; C.answer = 0;
+    C.n = 0; C.firstTry = 0; C.answer = 0; C.used = {};
     show('count');
     nextCountRound();
   }
@@ -913,8 +919,10 @@
     C.n++; C.wrong = 0; C.locked = false; C.counted = 0;
 
     // The amounts grow: 1-3 first, then up to 6, then up to 9.
-    var lo = C.n <= 2 ? 1 : 2, hi = C.n <= 2 ? 3 : C.n <= 4 ? 6 : 9, ans;
-    do { ans = lo + Math.floor(Math.random() * (hi - lo + 1)); } while (ans === C.answer);
+    var lo = C.n <= 2 ? 1 : 2, hi = C.n <= 2 ? 3 : C.n <= 4 ? 6 : 9, range = [], ans, v;
+    for (v = lo; v <= hi; v++) range.push(String(v));
+    ans = Number(pickTarget(range, String(C.answer), C.used));
+    C.used[String(ans)] = 1;
     C.answer = ans;
 
     C.dots.innerHTML = '';
@@ -1200,6 +1208,8 @@
       function (v) { d.settings.strict = v; store.save(); })));
     card.appendChild(row('Muziek', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.music ? 'aan' : 'uit',
       function (v) { d.settings.music = v === 'aan'; store.save(); audio.setMusic(d.settings.music); })));
+    card.appendChild(row('Slim oefenen', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.adaptive ? 'aan' : 'uit',
+      function (v) { d.settings.adaptive = v === 'aan'; store.save(); })));
     card.appendChild(row('Beurtwissel', seg([['0', 'Uit'], ['5', '5 min'], ['10', '10 min'], ['15', '15 min']], String(d.settings.turnMin),
       function (v) { d.settings.turnMin = +v; store.save(); turnReset(); })));
     card.appendChild(row('Naam bij Pinky', nameInput('pinky')));
@@ -1223,6 +1233,26 @@
 
     openModal(card, 60000);
   }
+
+  // ---------- Practice what is hard ----------
+  // Letters and numbers that need extra practice come up more often; what already goes well
+  // still comes up now and then. (The same judgement as in the parents' overview.)
+  function weightFor(key) {
+    if (!store.get().settings.adaptive || !state.profile) return 1;
+    var m = mastery(store.get().profiles[state.profile], key);
+    return m === 'practice' ? 6 : m === 'new' ? 2.5 : m === 'busy' ? 2.5 : 0.8;
+  }
+
+  // Pick one item from pool: not `avoid`, and less likely if it was already used this game.
+  function pickTarget(pool, avoid, used) {
+    var cands = pool.filter(function (k) { return k !== avoid; });
+    if (!cands.length) cands = pool.slice();
+    var ws = cands.map(function (k) { return weightFor(k) * (used && used[k] ? 0.35 : 1); });
+    var total = ws.reduce(function (a, b) { return a + b; }, 0), r = Math.random() * total;
+    for (var i = 0; i < cands.length; i++) { r -= ws[i]; if (r <= 0) return cands[i]; }
+    return cands[cands.length - 1];
+  }
+  LC.testPick = pickTarget;
 
   // ---------- Progress overview for parents ----------
   var WEEKDAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
