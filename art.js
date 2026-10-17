@@ -261,6 +261,114 @@
       '<path d="' + d + '" fill="none" stroke="#7c5cd6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   };
 
+  // The vehicles of the bonus ride. All drawn around the car's centre point, with the
+  // ground 28 units below it. The cat's head is drawn first (behind the body), so it
+  // shows through the glass; wheels are added separately because they turn.
+  var GL = 'rgba(196,232,255,0.42)';
+  function hole(x, y, w, h) { return ' M ' + x + ' ' + y + ' h ' + w + ' v ' + h + ' h ' + (-w) + ' Z'; }
+
+  var VEH = {
+    '': { vb: [-72, -48, 144, 80], wheels: [{ x: -38, r: 18 }, { x: 38, r: 18 }], head: [-30, -92, 62, 74], stats: { v: 1, a: 1, p: 1 },
+      body: function (c) {
+        return '<rect x="-62" y="-20" width="124" height="32" rx="11" fill="' + c.body + '"/>' +
+          '<rect x="-62" y="-4" width="124" height="6" rx="3" fill="#fff" opacity="0.7"/>' +
+          '<rect x="26" y="-36" width="34" height="18" rx="8" fill="' + c.dark + '"/>' +
+          '<circle cx="58" cy="-4" r="6" fill="#fff3a8"/>';
+      } },
+    taxi: { vb: [-72, -70, 144, 102], wheels: [{ x: -40, r: 18 }, { x: 40, r: 18 }], head: [-22, -70, 46, 54], stats: { v: 1.05, a: 1, p: 1 },
+      body: function () {
+        var chk = '';
+        for (var i = 0; i < 11; i++) chk += '<rect x="' + (-60 + i * 11) + '" y="-8" width="11" height="6" fill="' + (i % 2 ? '#3b2f55' : '#fff') + '"/>';
+        return '<rect x="-66" y="-18" width="132" height="32" rx="12" fill="#ffd23f"/>' + chk +
+          '<path d="M -34 -18 L -22 -54 L 24 -54 L 38 -18 Z" fill="' + GL + '" stroke="#e0a800" stroke-width="5" stroke-linejoin="round"/>' +
+          '<rect x="-12" y="-66" width="24" height="12" rx="4" fill="#fff" stroke="#3b2f55" stroke-width="3"/>' +
+          '<circle cx="60" cy="-6" r="5" fill="#fff3a8"/><rect x="-68" y="6" width="136" height="6" rx="3" fill="#c99a00"/>';
+      } },
+    police: { vb: [-72, -70, 144, 102], wheels: [{ x: -40, r: 18 }, { x: 40, r: 18 }], head: [-22, -70, 46, 54], stats: { v: 1.1, a: 1.05, p: 1 },
+      body: function () {
+        return '<rect x="-66" y="-18" width="132" height="32" rx="12" fill="#f4f7ff"/><rect x="-66" y="-6" width="132" height="12" fill="#2f5fd0"/>' +
+          '<polygon points="-30,-16 -26,-8 -18,-8 -24,-3 -22,5 -30,0 -38,5 -36,-3 -42,-8 -34,-8" fill="#ffd23f" transform="translate(0 -1)"/>' +
+          '<path d="M -34 -18 L -22 -54 L 24 -54 L 38 -18 Z" fill="' + GL + '" stroke="#2f5fd0" stroke-width="5" stroke-linejoin="round"/>' +
+          '<rect x="-20" y="-64" width="20" height="10" rx="3" fill="#e63946"/><rect x="0" y="-64" width="20" height="10" rx="3" fill="#3b82f6"/>' +
+          '<circle cx="60" cy="-6" r="5" fill="#fff3a8"/>';
+      } },
+    truck: { vb: [-98, -74, 182, 106], wheels: [{ x: -62, r: 21 }, { x: 50, r: 21 }], head: [14, -78, 44, 52], stats: { v: 0.92, a: 0.95, p: 0.7 },
+      body: function () {
+        return '<rect x="-96" y="-6" width="172" height="20" rx="6" fill="#4a5568"/>' +
+          '<rect x="-96" y="-66" width="88" height="62" rx="8" fill="#ff9f43"/><rect x="-96" y="-40" width="88" height="8" fill="#fff" opacity="0.8"/>' +
+          '<path fill-rule="evenodd" fill="#3d8bfd" d="M -2 -6 L -2 -52 L 36 -52 L 60 -22 L 78 -22 L 78 -6 Z M 8 -44 L 34 -44 L 50 -26 L 8 -26 Z"/>' +
+          '<path d="M 8 -44 L 34 -44 L 50 -26 L 8 -26 Z" fill="' + GL + '"/>' +
+          '<circle cx="76" cy="-14" r="5" fill="#fff3a8"/><rect x="-8" y="-72" width="6" height="30" fill="#333"/>';
+      } },
+    fire: { vb: [-100, -82, 190, 114], wheels: [{ x: -60, r: 21 }, { x: 52, r: 21 }], head: [10, -78, 44, 52], stats: { v: 1, a: 1, p: 0.8 },
+      body: function () {
+        var rungs = '';
+        for (var i = 0; i < 8; i++) rungs += '<rect x="' + (-90 + i * 11) + '" y="-58" width="3" height="12" fill="#c0c6cf"/>';
+        return '<rect x="-98" y="-6" width="188" height="20" rx="6" fill="#b3202c"/>' +
+          '<rect x="-98" y="-44" width="92" height="40" rx="6" fill="#e5383b"/><rect x="-98" y="-26" width="92" height="7" fill="#fff" opacity="0.85"/>' +
+          '<rect x="-94" y="-58" width="84" height="4" fill="#c0c6cf"/><rect x="-94" y="-50" width="84" height="4" fill="#c0c6cf"/>' + rungs +
+          '<path fill-rule="evenodd" fill="#e5383b" d="M -4 -6 L -4 -52 L 34 -52 L 54 -22 L 88 -22 L 88 -6 Z M 6 -44 L 32 -44 L 46 -26 L 6 -26 Z"/>' +
+          '<path d="M 6 -44 L 32 -44 L 46 -26 L 6 -26 Z" fill="' + GL + '"/>' +
+          '<rect x="8" y="-62" width="22" height="10" rx="4" fill="#ffd23f"/><rect x="62" y="-10" width="28" height="8" fill="#c0c6cf"/>' +
+          '<circle cx="86" cy="-14" r="5" fill="#fff3a8"/>';
+      } },
+    bus: { vb: [-100, -70, 198, 102], wheels: [{ x: -60, r: 21 }, { x: 58, r: 21 }], head: [42, -74, 44, 52], stats: { v: 0.95, a: 0.95, p: 0.75 },
+      body: function () {
+        var d = 'M -98 -6 L -98 -58 Q -98 -66 -90 -66 L 84 -66 Q 94 -66 94 -56 L 94 -6 Z';
+        var wins = [[-84, -52, 24, 24], [-54, -52, 24, 24], [-24, -52, 24, 24], [6, -52, 24, 24], [40, -54, 42, 28]];
+        var glass = '';
+        wins.forEach(function (w) { d += hole(w[0], w[1], w[2], w[3]); glass += '<rect x="' + w[0] + '" y="' + w[1] + '" width="' + w[2] + '" height="' + w[3] + '" fill="' + GL + '"/>'; });
+        return '<path fill-rule="evenodd" fill="#ffd23f" d="' + d + '"/>' + glass +
+          '<rect x="-98" y="-14" width="192" height="6" fill="#3b2f55"/><circle cx="90" cy="-16" r="5" fill="#fff3a8"/>';
+      } },
+    f1: { vb: [-96, -64, 202, 96], wheels: [{ x: -56, r: 22 }, { x: 62, r: 19 }], head: [-14, -60, 44, 52], stats: { v: 1.3, a: 1.2, p: 1 },
+      body: function () {
+        return '<rect x="-88" y="-44" width="26" height="7" rx="2" fill="#2d3142"/><rect x="-80" y="-38" width="4" height="26" fill="#2d3142"/>' +
+          '<rect x="-88" y="-48" width="4" height="16" fill="#2d3142"/>' +
+          '<path d="M -78 14 L -78 -6 L -60 -12 L -30 -14 L -8 -14 L 22 -8 L 66 4 L 96 8 L 96 14 Z" fill="#e5383b"/>' +
+          '<path d="M -52 -14 L -42 -32 L -30 -32 L -26 -14 Z" fill="#c1121f"/>' +
+          '<ellipse cx="8" cy="-12" rx="25" ry="5" fill="#2d3142"/>' +
+          '<rect x="-20" y="0" width="60" height="6" fill="#fff" opacity="0.85"/>' +
+          '<circle cx="54" cy="0" r="7" fill="#fff"/><path d="M 51 -2 L 55 -5 L 55 5" fill="none" stroke="#e5383b" stroke-width="2.4" stroke-linecap="round"/>' +
+          '<rect x="76" y="10" width="30" height="6" rx="2" fill="#2d3142"/>';
+      } }
+  };
+
+  // Everything the ride (and the shop pictures) need for one vehicle.
+  LC.vehicleDef = function (id, key) {
+    var v = VEH[id] || VEH[''];
+    var inner = v.body(LC.CAR[key]);
+    return {
+      id: id || '', vb: v.vb, wheels: v.wheels, head: v.head, stats: v.stats, inner: inner,
+      bodySvg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + v.vb[2] + '" height="' + v.vb[3] + '" viewBox="' + v.vb.join(' ') + '">' + inner + '</svg>'
+    };
+  };
+
+  // A picture of a vehicle with the cat in it, for the shop.
+  LC.carPreview = function (id, key, outfit) {
+    var d = LC.vehicleDef(id, key), hd = d.head;
+    var minX = Math.min(d.vb[0], hd[0]) - 6, minY = Math.min(d.vb[1], hd[1]) - 40;
+    var maxX = Math.max(d.vb[0] + d.vb[2], hd[0] + hd[2]) + 6, maxY = d.vb[1] + d.vb[3] + 4;
+    var cat = LC.catSVG(key, { head: true, cls: 'still', vb: '30 -62 240 285', outfit: outfit || {} })
+      .replace('<svg class="cat', '<svg x="' + hd[0] + '" y="' + hd[1] + '" width="' + hd[2] + '" height="' + hd[3] + '" class="cat');
+    var wheels = d.wheels.map(function (w) {
+      return '<circle cx="' + w.x + '" cy="' + (28 - w.r) + '" r="' + w.r + '" fill="#3b2f55"/><circle cx="' + w.x + '" cy="' + (28 - w.r) + '" r="' + (w.r * 0.45) + '" fill="#cfd6e4"/>';
+    }).join('');
+    return '<svg class="gp" viewBox="' + [minX, minY, maxX - minX, maxY - minY].join(' ') + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      cat + d.inner + wheels + '</svg>';
+  };
+
+  // The bonus car: body colours per cat, and a small icon of it.
+  LC.CAR = { pinky: { body: '#ff6f91', dark: '#d94b72' }, groentje: { body: '#4cc26b', dark: '#2f9a50' } };
+
+  LC.carIconSVG = function () {
+    return '<svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<circle cx="31" cy="14" r="9" fill="#f8a5c2"/><path d="M 24 8 L 25 1 L 30 6 Z M 38 8 L 37 1 L 32 6 Z" fill="#f8a5c2"/>' +
+      '<rect x="6" y="20" width="52" height="16" rx="7" fill="#ff7a59"/><rect x="6" y="28" width="52" height="3" fill="#fff" opacity="0.6"/>' +
+      '<circle cx="19" cy="38" r="7" fill="#3b2f55"/><circle cx="45" cy="38" r="7" fill="#3b2f55"/>' +
+      '<circle cx="19" cy="38" r="3" fill="#cfd6e4"/><circle cx="45" cy="38" r="3" fill="#cfd6e4"/></svg>';
+  };
+
   LC.giftSVG = function () {
     return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<rect x="8" y="20" width="32" height="22" rx="3" fill="none" stroke="#7c5cd6" stroke-width="4"/>' +

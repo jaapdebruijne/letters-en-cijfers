@@ -64,6 +64,67 @@
     setTimeout(function () { clearInterval(t); }, 900);
   }
 
+  // ---- Engine sound for the bonus ride ----
+  // One short engine "cycle" (a few combustion thumps) is made once and looped; speeding up
+  // the loop makes the engine rev. If audio/ride/engine.mp3 exists, that loop is used instead.
+  var eng = null, synthEngine = null, userEngine = null;
+
+  function buildEngineBuffer() {
+    var sr = ctx.sampleRate, per = Math.round(sr / 30), cycles = 24;
+    var buf = ctx.createBuffer(1, per * cycles, sr), d = buf.getChannelData(0);
+    var amps = [1, 0.55, 0.82, 0.5], peak = 0, c, i;
+    for (c = 0; c < cycles; c++) {
+      var amp = amps[c % 4] * (0.92 + 0.16 * Math.sin(c * 1.7));
+      for (i = 0; i < per; i++) {
+        var t = i / sr, env = Math.exp(-t / 0.007);
+        var v = env * (Math.sin(6.283 * 85 * t) + 0.5 * Math.sin(6.283 * 170 * t + 0.6)) +
+          0.35 * env * (Math.random() * 2 - 1) +
+          0.3 * Math.exp(-t / 0.022) * Math.sin(6.283 * 48 * t);
+        d[c * per + i] = amp * v;
+        if (Math.abs(amp * v) > peak) peak = Math.abs(amp * v);
+      }
+    }
+    for (i = 0; i < d.length; i++) d[i] = d[i] / peak * 0.9;
+    return buf;
+  }
+
+  function loadUserEngine() {
+    if (!ctx || userEngine !== null) return;
+    userEngine = false;
+    fetch('audio/ride/engine.mp3')
+      .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+      .then(function (ab) { return ab ? ctx.decodeAudioData(ab) : null; })
+      .then(function (b) { if (b) userEngine = b; })
+      .catch(function () { /* no own engine sound: the made one is used */ });
+  }
+
+  function engineStart(pitch) {
+    if (!ensure() || eng) return;
+    var buf = userEngine || synthEngine || (synthEngine = buildEngineBuffer());
+    var src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), comp = ctx.createDynamicsCompressor();
+    src.buffer = buf; src.loop = true;
+    f.type = 'lowpass'; f.frequency.value = 800; f.Q.value = 1.2;
+    g.gain.value = 0;
+    src.connect(f); f.connect(g); g.connect(comp); comp.connect(ctx.destination);
+    src.start();
+    eng = { src: src, f: f, g: g, pitch: pitch || 1 };
+  }
+
+  function engineSet(speed, gas, air) {
+    if (!eng) return;
+    var t = ctx.currentTime, rate = (0.9 + speed * 3.4 + (gas ? 0.5 : 0) + (air ? 0.9 : 0)) * eng.pitch;
+    eng.src.playbackRate.setTargetAtTime(rate, t, 0.09);
+    eng.f.frequency.setTargetAtTime(450 + rate * 380 + (gas ? 600 : 0), t, 0.09);
+    eng.g.gain.setTargetAtTime(air ? 0.16 : gas ? 0.42 : 0.17, t, 0.08);
+  }
+
+  function engineStop() {
+    if (!eng) return;
+    var e = eng; eng = null;
+    e.g.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    setTimeout(function () { try { e.src.stop(); } catch (err) { /* already stopped */ } }, 300);
+  }
+
   // ---- Voice clips: audio/letters/*.mp3 and audio/phrases/*.mp3 ----
   var clips = {}, curVoice = null, seq = 0;
 
@@ -100,7 +161,7 @@
   function pick(n) { return 1 + Math.floor(Math.random() * n); }
 
   LC.audio = {
-    unlock: function () { ensure(); },
+    unlock: function () { ensure(); loadUserEngine(); },
     setMusic: function (on) { wantMusic = on; if (on) startMusic(); else stopMusic(); },
     stopVoice: stopVoice,
     preload: function () {
@@ -124,12 +185,23 @@
       var t = ctx.currentTime + 0.02;
       [N.C6, N.E6, N.G6].forEach(function (f, i) { tone(f, t + i * 0.13, 0.9, 0.22, 'sine', sfxGain); });
     },
+    engineStart: engineStart,
+    engineSet: engineSet,
+    engineStop: engineStop,
     voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
     // A rising note for each thing that is counted (1 = low, 9 = high).
     note: function (i) {
       if (!ensure()) return;
       var scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.7, 1318.5, 1568];
       tone(scale[Math.max(0, Math.min(8, i - 1))], ctx.currentTime + 0.01, 0.5, 0.2, 'sine', sfxGain);
+    },
+    crash: function () {
+      if (!ensure()) return;
+      var t = ctx.currentTime + 0.01;
+      tone(120, t, 0.35, 0.3, 'sine', sfxGain);
+      tone(80, t + 0.1, 0.4, 0.26, 'sine', sfxGain);
+      tone(55, t + 0.22, 0.5, 0.22, 'sine', sfxGain);
+      LC.audio.pop();
     },
     pop: function () {
       if (!ensure()) return;
@@ -151,7 +223,7 @@
 
   document.addEventListener('visibilitychange', function () {
     if (!ctx) return;
-    if (document.hidden) ctx.suspend();
+    if (document.hidden) { engineStop(); ctx.suspend(); }
     else if (wantMusic || running) ctx.resume();
   });
 })();

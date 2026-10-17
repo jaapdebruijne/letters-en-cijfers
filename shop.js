@@ -15,6 +15,14 @@
       { id: 'crown', slot: 'head', cost: 15, name: 'Kroon' },
       { id: 'cape', slot: 'body', cost: 20, name: 'Cape' }
     ],
+    car: [
+      { id: 'taxi', slot: 'car', cost: 8, name: 'Taxi' },
+      { id: 'truck', slot: 'car', cost: 10, name: 'Vrachtwagen' },
+      { id: 'police', slot: 'car', cost: 12, name: 'Politie' },
+      { id: 'fire', slot: 'car', cost: 15, name: 'Brandweer' },
+      { id: 'bus', slot: 'car', cost: 18, name: 'Schoolbus' },
+      { id: 'f1', slot: 'car', cost: 25, name: 'Formule 1' }
+    ],
     room: [
       { id: 'teddy', cost: 6, name: 'Teddybeer' },
       { id: 'lamp', cost: 8, name: 'Lamp' },
@@ -26,7 +34,7 @@
   };
 
   LC.shopItem = function (id) {
-    var all = LC.SHOP.avatar.concat(LC.SHOP.room);
+    var all = LC.SHOP.avatar.concat(LC.SHOP.car, LC.SHOP.room);
     for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
     return null;
   };

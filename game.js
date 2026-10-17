@@ -31,6 +31,16 @@
     g.innerHTML = LC.decorMarkup(ids, newId);
   }
 
+  // A bonus ride is earned by finishing a part well.
+  function awardTicket(container) {
+    store.addTicket(state.profile);
+    if (!container) return;
+    var t = h('div', 'ticket-toast', LC.carIconSVG() + '<span>Bonusrit!</span>');
+    container.appendChild(t);
+    audio.chime();
+    setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3600);
+  }
+
   // One star (or more) earned: it floats up and is saved for the shop.
   function gain(n, container) {
     store.addStars(state.profile, n);
@@ -60,7 +70,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'games', 'shop', 'house', 'menu', 'trace', 'find', 'pop', 'count', 'bye'].forEach(function (n) {
+  ['profile', 'games', 'shop', 'house', 'ride', 'menu', 'trace', 'find', 'pop', 'count', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -123,7 +133,15 @@
     shopBtn.addEventListener('click', function () { buildShop(); show('shop'); });
     var houseBtn = h('button', 'topbtn housebtn', LC.homeSVG());
     houseBtn.addEventListener('click', function () { openHouse(); });
-    s.appendChild(pill); s.appendChild(houseBtn); s.appendChild(shopBtn);
+    var tk = store.tickets(key);
+    var carBtn = h('button', 'topbtn carbtn' + (tk > 0 ? ' ready' : ''), LC.carIconSVG());
+    var tb = h('span', 'tbadge'); tb.textContent = String(tk); carBtn.appendChild(tb);
+    carBtn.addEventListener('click', function () {
+      if (store.tickets(key) > 0) { startRide(); return; }
+      carBtn.classList.add('nope'); audio.boop();
+      setTimeout(function () { carBtn.classList.remove('nope'); }, 600);
+    });
+    s.appendChild(pill); s.appendChild(carBtn); s.appendChild(houseBtn); s.appendChild(shopBtn);
 
     var row = h('div', 'gcards');
     [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken'], ['count', 'Tellen']].forEach(function (g, i) {
@@ -154,7 +172,7 @@
     var fx = h('div', 'balloons');
 
     var tabs = h('div', 'shoptabs');
-    [['avatar', catFor(key, { head: true })], ['room', LC.homeSVG()]].forEach(function (t) {
+    [['avatar', catFor(key, { head: true })], ['car', LC.carIconSVG()], ['room', LC.homeSVG()]].forEach(function (t) {
       var b = h('button', 'shoptab' + (t[0] === shopTab ? ' on' : ''), t[1]);
       b.addEventListener('click', function () { shopTab = t[0]; buildShop(); });
       tabs.appendChild(b);
@@ -165,7 +183,9 @@
       var owned = store.owns(key, it.id);
       var equipped = !!it.slot && st.avatar[it.slot] === it.id;
       var card = h('button', 'scard' + (owned ? ' owned' : '') + (equipped ? ' on' : ''),
-        shopTab === 'avatar' ? LC.accessoryPreview(key, it.id) : LC.decorPreview(it.id));
+        shopTab === 'avatar' ? LC.accessoryPreview(key, it.id)
+          : shopTab === 'car' ? LC.carPreview(it.id, key, st.avatar)
+          : LC.decorPreview(it.id));
       var chip = h('div', 'chip' + (owned ? ' got' : ''));
       chip.textContent = owned ? (it.slot ? (equipped ? 'Aan' : 'Uit') : '✓') : '★ ' + it.cost;
       card.appendChild(chip);
@@ -378,10 +398,12 @@
     store.addDone(state.profile, key);
     burst();
     gain(1, T.balloons);
+    T.run = (T.run || 0) + 1;
+    if (T.run === 5) setTimeout(function () { if (mine === token) awardTicket(T.balloons); }, 700);
     var list = listFor(state.cat), last = state.cat === 'name' && state.pos === list.length - 1;
     if (last) {
       // The whole name is done: a bigger celebration, then back to the choice screen.
-      setTimeout(function () { if (mine === token) gain(2, T.balloons); }, 1200);
+      setTimeout(function () { if (mine === token) { gain(2, T.balloons); awardTicket(T.balloons); } }, 1200);
       setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 1200);
       setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 2400);
       advanceTimer = setTimeout(function () {
@@ -457,7 +479,7 @@
   function startFind(cat) {
     var pool = poolFor(cat);
     if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
-    F.kind = cat; F.pool = pool; F.n = 0; F.target = null;
+    F.kind = cat; F.pool = pool; F.n = 0; F.target = null; F.first = 0;
     show('find');
     nextRound();
   }
@@ -506,6 +528,7 @@
     if (gen !== F.gen || F.locked) return;
     if (key === F.target) {
       F.locked = true;
+      if (F.wrong === 0) F.first = (F.first || 0) + 1;
       btn.classList.add('right');
       Array.prototype.forEach.call(F.choices.children, function (c) { if (c !== btn) c.classList.add('fade'); });
       setMood('happy');
@@ -538,7 +561,7 @@
     for (var i = 0; i < ROUNDS; i++) F.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     audio.chime(); burst(F.balloons);
-    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); } }, 1200);
+    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); if (F.first >= 4) awardTicket(F.balloons); } }, 1200);
     F.timer = setTimeout(function () {
       if (gen !== F.gen) return;
       leaveFind(); buildMenu(); show('menu');
@@ -746,7 +769,7 @@
     Array.prototype.forEach.call(G.sky.children, function (b, i) {
       setTimeout(function () { if (gen === G.gen && b.parentNode) { sparks(b); audio.pop(); b.parentNode.removeChild(b); } }, 200 + i * 250);
     });
-    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); } }, 400);
+    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); if (G.firstTry >= 4) awardTicket(G.fx); } }, 400);
     G.timer = setTimeout(function () {
       if (gen !== G.gen) return;
       leavePop(); buildMenu(); show('menu');
@@ -883,11 +906,79 @@
     for (var i = 0; i < ROUNDS; i++) C.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     audio.chime(); burst(C.fx);
-    setTimeout(function () { if (gen === C.gen) { audio.chime(); burst(C.fx); gain(bonus, C.fx); } }, 1200);
+    setTimeout(function () { if (gen === C.gen) { audio.chime(); burst(C.fx); gain(bonus, C.fx); if (C.firstTry >= 4) awardTicket(C.fx); } }, 1200);
     C.timer = setTimeout(function () {
       if (gen !== C.gen) return;
       leaveCount(); buildGames(); show('games');
     }, 5000);
+  }
+
+  // ---------- Bonus ride ----------
+  var R = null;
+
+  function startRide() {
+    var key = state.profile;
+    if (!store.useTicket(key)) return;
+    var s = scr.ride;
+    s.textContent = '';
+    var host = h('div', 'ridehost');
+    var fx = h('div', 'balloons');
+    var home = h('button', 'home', LC.homeSVG());
+    home.addEventListener('click', function () { endRide(); });
+    s.appendChild(host); s.appendChild(home); s.appendChild(fx);
+    show('ride');
+    var avatar = store.get().profiles[key].avatar;
+    var catSvg = LC.catSVG(key, { head: true, cls: 'still', vb: '30 -62 240 285', outfit: avatar });
+    R = { fx: fx, ended: false };
+    var ENGINE_PITCH = { '': 1, taxi: 1, police: 1.1, truck: 0.7, fire: 0.8, bus: 0.72, f1: 1.45 };
+    audio.engineStart(ENGINE_PITCH[avatar.car] || 1);
+    R.ride = new LC.Ride(host, {
+      vehicle: LC.vehicleDef(avatar.car, key),
+      catSvg: catSvg,
+      paused: function () { return !!modal; },
+      onStar: function (n) { audio.note(((n - 1) % 9) + 1); },
+      onEngine: function (speed, gas, air) { audio.engineSet(speed, gas, air); },
+      onCrash: function () { audio.engineStop(); audio.crash(); },
+      onFinish: function (n, ok) { finishRide(n, ok); }
+    });
+  }
+
+  // The ride is over: at the finish line, or after a crash. The stars collected are kept either way.
+  function finishRide(n, ok) {
+    if (!R || R.ended) return;
+    R.ended = true;
+    R.ride.stop();
+    audio.engineStop();
+    var fx = R.fx;
+    var done = h('div', 'ridedone' + (ok ? '' : ' oops'), (ok ? '' : 'Oei!<br>') + '★ ' + n);
+    fx.appendChild(done);
+    if (ok) { audio.chime(); burst(fx); }
+    if (n > 0) store.addStars(state.profile, n);
+    setTimeout(function () {
+      if (R && R.fx === fx) { R = null; buildGames(); show('games'); audio.voiceChoose(); }
+    }, 4200);
+  }
+
+  // Leaving early still keeps the stars collected so far.
+  function endRide() {
+    if (!R) return;
+    if (!R.ended) {
+      R.ended = true;
+      R.ride.stop();
+      audio.engineStop();
+      var n = R.ride.collected();
+      if (n > 0) store.addStars(state.profile, n);
+    }
+    R = null;
+    buildGames(); show('games'); audio.voiceChoose();
+  }
+
+  LC.testRide = function () { return R && R.ride; };
+
+  function stopRide() {
+    if (R && R.ride) R.ride.stop();
+    audio.engineStop();
+    R = null;
   }
 
   // ---------- Goodbye ----------
@@ -906,6 +997,7 @@
     leaveFind();
     leavePop();
     leaveCount();
+    stopRide();
     audio.setMusic(false);
     buildBye();
     show('bye');

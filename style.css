@@ -191,6 +191,37 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 @keyframes hop2 { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-2.4vh); } }
 @keyframes glow { 0%, 100% { box-shadow: 0 0 0 0.6vh #ffd166; } 50% { box-shadow: 0 0 0 1.8vh #ffd166; } }
 
+/* bonus ride */
+.carbtn { right: calc(2vw + 25.2vh); filter: grayscale(0.9); opacity: 0.65; }
+.carbtn.ready { filter: none; opacity: 1; background: linear-gradient(160deg, #fff3b0, #ffb347); animation: carpulse 1.4s ease-in-out infinite; }
+.carbtn.nope { animation: shake 0.5s; }
+.tbadge { position: absolute; right: -0.4vh; top: -0.4vh; min-width: 4.6vh; height: 4.6vh; padding: 0 0.8vh; border-radius: 2.4vh; background: #7c5cd6; color: #fff;
+  font-size: 3vh; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+@keyframes carpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+.ticket-toast { position: absolute; left: 62%; top: 30%; transform: translateX(-50%); display: flex; align-items: center; gap: 1.6vw; background: #fff; border-radius: 6vh;
+  padding: 1.6vh 2.6vw; box-shadow: 0 1vh 0 rgba(120, 90, 160, 0.2); font-size: 6vh; font-weight: 800; color: #7c5cd6; animation: toastin 3.4s ease-out forwards; pointer-events: none; white-space: nowrap; }
+.ticket-toast svg { width: 12vh; height: 9vh; }
+@keyframes toastin { 0% { opacity: 0; transform: translate(-50%, 4vh) scale(0.6); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1.08); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6vh); } }
+.ridehost { position: absolute; inset: 0; }
+.ridecanvas { width: 100%; height: 100%; display: block; }
+.ridehud { position: absolute; top: 2.5vh; left: 50%; transform: translateX(-50%); background: #fff; color: #e0a800; font-size: 6vh; font-weight: 800; border-radius: 6vh;
+  padding: 0.6vh 2.6vw; box-shadow: 0 0.8vh 0 rgba(120, 90, 160, 0.16); pointer-events: none; }
+.ridebar { position: absolute; top: 12.5vh; left: 32%; width: 36%; height: 1.8vh; background: rgba(255, 255, 255, 0.7); border-radius: 1vh; overflow: hidden; pointer-events: none; }
+.ridefill { height: 100%; width: 0; background: #ffb347; border-radius: 1vh; }
+.pedal { position: absolute; bottom: 2.5vh; padding: 0; overflow: hidden; touch-action: none; transform-origin: 50% 100%;
+  background: linear-gradient(#656a78, #3a3d47); border-radius: 3vh; box-shadow: 0 1.4vh 0 #23252d, inset 0 0.6vh 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.08s, filter 0.08s; }
+.pedal::before { content: ''; position: absolute; left: 1.6vh; right: 1.6vh; top: 1.6vh; bottom: 6.5vh; border-radius: 1.8vh;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.3) 0 0.8vh, transparent 0.8vh 2.2vh); }
+.pedal span { position: absolute; left: 0; right: 0; bottom: 1.2vh; text-align: center; font-weight: 900; font-size: 3.4vh; letter-spacing: 0.3vh;
+  color: #fff; text-shadow: 0 0.4vh 0 rgba(0, 0, 0, 0.45); }
+.pedal.gas { right: 3vw; width: 16vh; height: 36vh; border: 0.9vh solid #3fae6a; }
+.pedal.brake { left: 3vw; width: 27vh; height: 23vh; border: 0.9vh solid #e0556b; }
+.pedal.down { transform: perspective(60vh) rotateX(30deg) scale(0.97); filter: brightness(1.2); }
+.ridedone.oops { font-size: 13vh; line-height: 1.1; text-align: center; color: #ff8a65; }
+.ridedone { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: 18vh; font-weight: 900; color: #ffc83d; text-shadow: 0 1vh 0 #fff, 0 0 4vh #fff;
+  animation: toastin 4s ease-out forwards; pointer-events: none; }
+
 /* counting */
 .cfield { position: absolute; left: 62%; top: 11vh; transform: translateX(-50%); width: 52vw; height: 50vh; background: rgba(255, 255, 255, 0.9);
   border-radius: 5vh; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.14); }

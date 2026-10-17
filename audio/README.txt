@@ -21,5 +21,10 @@ Folder audio/phrases/
   goed-1.mp3 ... goed-5.mp3        after a success   e.g. "Goed zo!", "Super!", "Wat knap!"
   nogeens-1.mp3 ... nogeens-3.mp3  after a try that did not work   e.g. "Probeer het nog eens!"
 
+Optional: your own engine sound for the bonus ride
+  audio/ride/engine.mp3   a short engine loop (1-3 seconds) that repeats smoothly.
+  The game speeds it up and slows it down with the car. If the file is missing,
+  the game uses its own made-up engine sound.
+
 Tips: keep each clip short (1-3 seconds), record in a quiet room, and use
 a cheerful voice. After adding files, reload the page once while online.
