@@ -102,8 +102,10 @@
     removeTimeup();
   }
   function turnTick(dt) {
+    if (!state.profile || modal || document.hidden || current === 'profile' || current === 'switch' || current === 'bye') return;
+    store.addTime(state.profile, dt / 1000);
     var min = store.get().settings.turnMin;
-    if (!min || !state.profile || modal || document.hidden || current === 'profile' || current === 'switch' || current === 'bye') return;
+    if (!min) return;
     if (!turn.due) {
       turn.ms += dt;
       if (turn.ms >= min * 60000) { turn.due = true; showTimeup(); }
@@ -116,7 +118,10 @@
     var now = Date.now(), dt = Math.min(2500, now - turn.last);
     turn.last = now;
     turnTick(dt);
+    if (++flushCount % 15 === 0) store.flush();
   }, 1000);
+  var flushCount = 0;
+  document.addEventListener('visibilitychange', function () { if (document.hidden) store.flush(); });
   LC.testTurn = function (ms) { turnTick(ms); return turn; };
 
   // Stop whatever is running; a bonus ride in progress keeps the stars collected so far.
@@ -455,7 +460,7 @@
     setMood('idle');
     tracer = new LC.Tracer(T.card, key, store.get().settings.strict, {
       onSuccess: function () { success(key, mine); },
-      onTry: function () { setMood('oops'); audio.boop(); audio.voiceRetry(); },
+      onTry: function () { store.record(state.profile, key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
       onHelp: function () { setMood('help'); audio.voiceHelp(); },
       onHelpDone: function () { setMood('idle'); }
     });
@@ -606,6 +611,7 @@
     if (gen !== F.gen || F.locked) return;
     if (key === F.target) {
       F.locked = true;
+      store.record(state.profile, F.target, F.wrong === 0 ? 'first' : 'ask');
       if (F.wrong === 0) F.first = (F.first || 0) + 1;
       btn.classList.add('right');
       Array.prototype.forEach.call(F.choices.children, function (c) { if (c !== btn) c.classList.add('fade'); });
@@ -619,6 +625,7 @@
       return;
     }
     F.wrong++;
+    store.record(state.profile, F.target, 'miss');
     btn.classList.add('fade');
     btn.disabled = true;
     setMood('oops');
@@ -784,6 +791,7 @@
     var gen = G.gen;
     if (G.locked || G.cool) return;
     if (key !== G.target) { wrongTap(b, gen); return; }
+    store.record(state.profile, G.target, G.wrong === 0 ? 'first' : 'ask');
     G.locked = true;
     clearTimeout(G.hintT);
     sparks(b);
@@ -801,6 +809,7 @@
   // wildly does not help; after the third miss the cat shows the right balloon herself.
   function wrongTap(b, gen) {
     G.wrong++;
+    store.record(state.profile, G.target, 'miss');
     b.classList.add('bounce');
     setTimeout(function () { b.classList.remove('bounce'); }, 520);
     audio.boop();
@@ -818,6 +827,7 @@
   }
 
   function revealTarget(gen) {
+    store.record(state.profile, G.target, 'ask');
     G.locked = true; G.cool = false;
     clearTimeout(G.hintT);
     G.sky.classList.remove('cool');
@@ -950,6 +960,7 @@
   function chooseCount(btn, num, gen) {
     if (gen !== C.gen || C.locked) return;
     if (num === C.answer) {
+      store.record(state.profile, String(C.answer), C.wrong === 0 ? 'first' : 'ask');
       C.locked = true;
       clearTimeout(C.autoT);
       btn.classList.add('right');
@@ -964,6 +975,7 @@
       return;
     }
     C.wrong++;
+    store.record(state.profile, String(C.answer), 'miss');
     btn.classList.add('fade');
     btn.disabled = true;
     setMood('oops');
@@ -1194,6 +1206,8 @@
     card.appendChild(row('Naam bij Groentje', nameInput('groentje')));
 
     var actions = h('div', 'actions');
+    var prog = h('button', 'btn'); prog.textContent = 'Voortgang bekijken';
+    prog.addEventListener('click', function () { openProgress(state.profile || 'pinky'); });
     var reset = h('button', 'btn warn'); reset.textContent = 'Voortgang wissen';
     var armed = false;
     reset.addEventListener('click', function () {
@@ -1204,10 +1218,107 @@
     close.addEventListener('click', closeGame);
     var back = h('button', 'btn primary'); back.textContent = 'Terug naar spel';
     back.addEventListener('click', closeAndResume);
-    actions.appendChild(reset); actions.appendChild(close); actions.appendChild(back);
+    actions.appendChild(prog); actions.appendChild(reset); actions.appendChild(close); actions.appendChild(back);
     card.appendChild(actions);
 
     openModal(card, 60000);
+  }
+
+  // ---------- Progress overview for parents ----------
+  var WEEKDAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+
+  // new = not seen yet, busy = on the way, good = knows it, practice = needs extra attention
+  function mastery(p, k) {
+    var e = p.stats[k] || [0, 0, 0, 0], done = p.done[k] || 0, a = e[0], r = e[1], m = e[2], t = e[3];
+    if (!a && !done && !m && !t) return 'new';
+    if ((a >= 2 && r / a < 0.5) || m >= 4 || (done >= 2 && t > done * 2)) return 'practice';
+    if ((a >= 3 && r / a >= 0.75 && m <= a) || (a < 3 && done >= 4 && t <= done)) return 'good';
+    return 'busy';
+  }
+
+  function detailText(p, k) {
+    var e = p.stats[k] || [0, 0, 0, 0], done = p.done[k] || 0, parts = [];
+    if (done) parts.push(done + '× overgetrokken');
+    if (e[0]) parts.push(e[1] + ' van ' + e[0] + ' in één keer goed');
+    if (e[2]) parts.push(e[2] + '× misgetikt');
+    if (e[3]) parts.push(e[3] + ' mislukte pogingen bij overtrekken');
+    return parts.length ? parts.join(' · ') : 'Nog niet geoefend';
+  }
+
+  function openProgress(which) {
+    var d = store.get(), p = d.profiles[which];
+    var card = h('div', 'mcard progress');
+    var title = h('h2'); title.textContent = 'Voortgang'; card.appendChild(title);
+
+    var tabs = h('div', 'ptabs');
+    ['pinky', 'groentje'].forEach(function (k) {
+      var b = h('button', 'ptab' + (k === which ? ' on' : ''), catFor(k, { head: true }));
+      var n = h('span'); n.textContent = LC.CATS[k].name + (d.profiles[k].name ? ' (' + d.profiles[k].name + ')' : '');
+      b.appendChild(n);
+      b.addEventListener('click', function () { openProgress(k); });
+      tabs.appendChild(b);
+    });
+    card.appendChild(tabs);
+
+    var today = Math.round((p.time[store.dayKey(0)] || 0) / 60);
+    var info = h('div', 'pinfo');
+    ['★ ' + p.stars + ' sterren', 'Bonuskaartjes: ' + p.tickets, 'Vandaag gespeeld: ' + today + ' min'].forEach(function (t) {
+      var sp = h('span'); sp.textContent = t; info.appendChild(sp);
+    });
+    card.appendChild(info);
+
+    var week = h('div', 'pweek'), mins = [], maxMin = 1, i;
+    for (i = 6; i >= 0; i--) { var mm = Math.round((p.time[store.dayKey(i)] || 0) / 60); mins.push([i, mm]); if (mm > maxMin) maxMin = mm; }
+    mins.forEach(function (x) {
+      var dt = new Date(); dt.setDate(dt.getDate() - x[0]);
+      var bar = h('div', 'pbar');
+      var num = h('span'); num.textContent = x[1] ? String(x[1]) : ''; bar.appendChild(num);
+      var col = h('i'); col.style.height = (x[1] ? Math.max(8, x[1] / maxMin * 100) : 3) + '%'; bar.appendChild(col);
+      var lab = h('em'); lab.textContent = x[0] === 0 ? 'nu' : WEEKDAYS[dt.getDay()]; bar.appendChild(lab);
+      week.appendChild(bar);
+    });
+    card.appendChild(week);
+
+    var detail = h('div', 'pdetail'); detail.textContent = 'Tik op een letter of cijfer voor details.';
+    var hasData = false;
+    [['Hoofdletters', LC.CATEGORIES.upper], ['Kleine letters', LC.CATEGORIES.lower], ['Cijfers', LC.CATEGORIES.digit]].forEach(function (g) {
+      var t = h('div', 'pgtitle'); t.textContent = g[0]; card.appendChild(t);
+      var grid = h('div', 'pgrid');
+      g[1].forEach(function (k) {
+        var mst = mastery(p, k);
+        if (mst !== 'new') hasData = true;
+        var tile = h('button', 'ptile m-' + mst, LC.glyphSVG(k, { sw: 18, color: '#4a3f63' }));
+        tile.addEventListener('click', function () { detail.textContent = k + ': ' + detailText(p, k); });
+        grid.appendChild(tile);
+      });
+      card.appendChild(grid);
+    });
+
+    var legend = h('div', 'plegend');
+    [['m-good', 'goed'], ['m-busy', 'bezig'], ['m-practice', 'extra oefenen'], ['m-new', 'nog niet gezien']].forEach(function (l) {
+      var sp = h('span', l[0]); sp.textContent = l[1]; legend.appendChild(sp);
+    });
+    card.appendChild(legend);
+    card.appendChild(detail);
+
+    var bad = [];
+    LC.ORDER.forEach(function (k) {
+      if (mastery(p, k) === 'practice') { var e = p.stats[k] || [0, 0, 0, 0]; bad.push([k, e[2] + (e[0] - e[1]) + e[3] / 2]); }
+    });
+    bad.sort(function (a, b) { return b[1] - a[1]; });
+    var prac = h('div', 'ppractice');
+    var pt = h('b'); pt.textContent = 'Extra oefenen met: '; prac.appendChild(pt);
+    if (bad.length) {
+      bad.slice(0, 8).forEach(function (b) { prac.appendChild(h('span', 'pchip', LC.glyphSVG(b[0], { sw: 18, color: '#d9534f' }))); });
+    } else {
+      var none = h('span'); none.textContent = hasData ? 'niets, alles gaat goed!' : 'nog te weinig gespeeld, het overzicht vult zich vanzelf.'; prac.appendChild(none);
+    }
+    card.appendChild(prac);
+
+    var back = h('button', 'btn primary'); back.textContent = 'Terug';
+    back.addEventListener('click', openParent);
+    var wrap = h('div', 'actions'); wrap.appendChild(back); card.appendChild(wrap);
+    openModal(card, 120000);
   }
 
   // ---------- Hidden paw print: 5 quick taps open the sum ----------

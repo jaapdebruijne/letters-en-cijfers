@@ -308,6 +308,33 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .panel input { width: 30vw; font-size: 3.4vh; padding: 1vh 1.2vw; border: 2px solid #cbb8ea; border-radius: 1.6vh; color: var(--ink); background: #fff; }
 .actions { display: flex; gap: 1.5vw; justify-content: center; flex-wrap: wrap; margin-top: 2.4vh; }
 
+/* progress overview */
+.progress { width: 94vw; text-align: left; }
+.progress h2 { text-align: center; margin-bottom: 0.6vh; }
+.ptabs { display: flex; gap: 1.4vw; margin: 0.4vh 0; }
+.ptab { display: flex; align-items: center; gap: 1vw; background: #ece4f7; border-radius: 2vh; padding: 0.6vh 1.4vw; font-size: 3vh; font-weight: 700; }
+.ptab.on { background: var(--accent); color: #fff; }
+.ptab .cat { height: 6vh; width: auto; }
+.pinfo { display: flex; gap: 3vw; font-size: 3vh; margin: 0.6vh 0; flex-wrap: wrap; }
+.pweek { display: flex; gap: 1.2vw; align-items: flex-end; height: 11vh; margin: 0.2vh 0 0.6vh; }
+.pbar { width: 4.4vw; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; font-size: 2.1vh; }
+.pbar i { display: block; width: 100%; background: #ffb347; border-radius: 0.8vh 0.8vh 0 0; min-height: 0.4vh; }
+.pbar em { font-style: normal; opacity: 0.7; }
+.pgtitle { font-weight: 700; font-size: 2.8vh; margin: 0.8vh 0 0.3vh; }
+.pgrid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 0.7vh 0.5vw; }
+.ptile { height: 7.2vh; border-radius: 1.4vh; display: flex; align-items: center; justify-content: center; padding: 0; }
+.ptile .glyph { height: 4.8vh; width: auto; max-width: 90%; }
+.m-new { background: #ece8f4; }
+.m-busy { background: #fff0a8; }
+.m-good { background: #bdebc0; }
+.m-practice { background: #ffc9ad; }
+.plegend { display: flex; gap: 2vw; font-size: 2.3vh; margin: 0.8vh 0; flex-wrap: wrap; }
+.plegend span { padding: 0.2vh 1vw; border-radius: 1vh; }
+.pdetail { min-height: 4.2vh; font-size: 2.9vh; background: #f6f1fb; border-radius: 1.4vh; padding: 0.6vh 1.2vw; margin: 0.4vh 0; }
+.ppractice { display: flex; gap: 0.8vw; align-items: center; flex-wrap: wrap; font-size: 3vh; margin: 0.6vh 0; }
+.pchip { display: flex; background: #fff1ec; border-radius: 1.2vh; padding: 0.5vh 0.8vw; }
+.pchip .glyph { height: 5vh; width: auto; }
+
 /* portrait hint */
 #rotate { display: none; position: fixed; inset: 0; z-index: 100; background: #f7ebfb; flex-direction: column; align-items: center; justify-content: center; gap: 4vmin; font-size: 6vmin; }
 #rotate p { margin: 0; }

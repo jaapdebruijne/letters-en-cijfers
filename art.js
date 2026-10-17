@@ -229,10 +229,10 @@
 
   LC.glyphSVG = function (key, opts) {
     var g = LC.GLYPHS[key];
-    var sw = (opts && opts.sw) || 14;
+    var sw = (opts && opts.sw) || 14, col = (opts && opts.color) || g.color;
     var paths = g.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
     return '<svg class="glyph" viewBox="' + g.view.join(' ') + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<g fill="none" stroke="' + g.color + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>';
+      '<g fill="none" stroke="' + col + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>';
   };
 
   LC.homeSVG = function () {

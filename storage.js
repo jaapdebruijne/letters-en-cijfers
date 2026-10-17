@@ -4,10 +4,10 @@
   var KEY = 'lcl.v1';
   var PROFILES = ['pinky', 'groentje'];
   var SLOTS = ['head', 'face', 'body', 'car'];
-  var data = null;
+  var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', done: {}, stars: 0, tickets: 0, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
+    return { name: '', done: {}, stats: {}, time: {}, stars: 0, tickets: 0, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
   }
 
   function fresh() {
@@ -30,6 +30,19 @@
             Object.keys(p.done).forEach(function (g) {
               var n = p.done[g];
               if (LC.GLYPHS[g] && isFinite(n)) out.done[g] = Math.max(0, Math.min(9999, Math.floor(n)));
+            });
+          }
+          if (p.stats && typeof p.stats === 'object') {
+            Object.keys(p.stats).forEach(function (g) {
+              var e = p.stats[g];
+              if (LC.GLYPHS[g] && Array.isArray(e) && e.length === 4 && e.every(isFinite)) {
+                out.stats[g] = e.map(function (n) { return Math.max(0, Math.min(9999, Math.floor(n))); });
+              }
+            });
+          }
+          if (p.time && typeof p.time === 'object') {
+            Object.keys(p.time).sort().slice(-30).forEach(function (day) {
+              if (/^\d{4}-\d{2}-\d{2}$/.test(day) && isFinite(p.time[day])) out.time[day] = Math.max(0, Math.min(86400, Math.floor(p.time[day])));
             });
           }
           if (isFinite(p.stars)) out.stars = Math.max(0, Math.min(99999, Math.floor(p.stars)));
@@ -81,6 +94,31 @@
       Object.keys(d).forEach(function (k) { t += d[k]; });
       return t;
     },
+    // What happened with one letter or number: asked / first try right / missed tap / failed trace
+    record: function (profile, key, kind) {
+      var st = get().profiles[profile].stats;
+      if (!LC.GLYPHS[key]) return;
+      var e = st[key] || (st[key] = [0, 0, 0, 0]);
+      if (kind === 'first') { e[0]++; e[1]++; }
+      else if (kind === 'ask') e[0]++;
+      else if (kind === 'miss') e[2]++;
+      else if (kind === 'tryfail') e[3]++;
+      for (var i = 0; i < 4; i++) if (e[i] > 9999) e[i] = 9999;
+      save();
+    },
+    dayKey: function (offset) {
+      var d = new Date(); d.setDate(d.getDate() - (offset || 0));
+      var m = d.getMonth() + 1, day = d.getDate();
+      return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+    },
+    addTime: function (profile, sec) {
+      var t = get().profiles[profile].time, k = LC.store.dayKey(0);
+      t[k] = (t[k] || 0) + sec;
+      var keys = Object.keys(t).sort();
+      while (keys.length > 30) delete t[keys.shift()];
+      dirty = true;
+    },
+    flush: function () { if (dirty) { dirty = false; save(); } },
     stars: function (profile) { return get().profiles[profile].stars; },
     addStars: function (profile, n) {
       var p = get().profiles[profile];
@@ -119,7 +157,7 @@
     resetProgress: function () {
       PROFILES.forEach(function (k) {
         var p = get().profiles[k];
-        p.done = {}; p.stars = 0; p.tickets = 0; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
+        p.done = {}; p.stats = {}; p.time = {}; p.stars = 0; p.tickets = 0; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
       });
       save();
     }
