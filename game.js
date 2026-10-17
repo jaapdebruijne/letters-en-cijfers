@@ -158,9 +158,7 @@
       onHelpDone: function () { setMood('idle'); }
     });
     setTimeout(function () { if (mine === token) audio.voiceLetter(LC.GLYPHS[key].sound); }, 350);
-    if ((store.get().profiles[state.profile].done[key] || 0) < 3) {
-      setTimeout(function () { if (mine === token) showHow(); }, 1100);
-    }
+    setTimeout(function () { if (mine === token) showHow(); }, 1100);
   }
 
   function showHow() {
