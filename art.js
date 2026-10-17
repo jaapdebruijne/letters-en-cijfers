@@ -71,6 +71,21 @@
       '<path d="M 8 24 L 24 9 L 40 24 M 13 21 L 13 40 L 35 40 L 35 21" fill="none" stroke="#7c5cd6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   };
 
+  LC.pencilSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path d="M 10 38 L 12 29 L 32 9 L 39 16 L 19 36 Z M 28 13 L 35 20" fill="none" stroke="#7c5cd6" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+  };
+
+  LC.searchSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<circle cx="21" cy="21" r="12" fill="none" stroke="#7c5cd6" stroke-width="5"/>' +
+      '<path d="M 30 30 L 41 41" stroke="#7c5cd6" stroke-width="6" stroke-linecap="round"/></svg>';
+  };
+
+  LC.playSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M 15 8 L 40 24 L 15 40 Z" fill="#7c5cd6" stroke="#7c5cd6" stroke-width="4" stroke-linejoin="round"/></svg>';
+  };
+
   LC.arrowSVG = function (dir) {
     var d = dir < 0 ? 'M 30 8 L 14 24 L 30 40' : 'M 18 8 L 34 24 L 18 40';
     return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +

@@ -82,15 +82,18 @@
     if (curVoice) { try { curVoice.pause(); } catch (e) { /* ignore */ } curVoice = null; }
   }
 
+  // Resolves true when a recording exists for this clip (so the game knows if it is silent).
   function playVoice(path) {
     stopVoice();
     var mine = seq;
-    clipUrl(path).then(function (u) {
-      if (!u || mine !== seq) return;
+    return clipUrl(path).then(function (u) {
+      if (!u) return false;
+      if (mine !== seq) return true;
       var a = new Audio(u);
       curVoice = a;
       var p = a.play();
-      if (p && p.catch) p.catch(function () { /* silent if blocked or missing */ });
+      if (p && p.catch) p.catch(function () { /* silent if blocked */ });
+      return true;
     });
   }
 
@@ -110,7 +113,7 @@
       for (var i = 1; i <= PRAISE_COUNT; i++) clipUrl('audio/phrases/goed-' + i + '.mp3');
       for (var j = 1; j <= RETRY_COUNT; j++) clipUrl('audio/phrases/nogeens-' + j + '.mp3');
     },
-    voiceLetter: function (sound) { playVoice('audio/letters/' + String(sound).toLowerCase() + '.mp3'); },
+    voiceLetter: function (sound) { return playVoice('audio/letters/' + String(sound).toLowerCase() + '.mp3'); },
     voiceWelcome: function () { playVoice('audio/phrases/welkom.mp3'); },
     voiceChoose: function () { playVoice('audio/phrases/kies.mp3'); },
     voiceHelp: function () { playVoice('audio/phrases/kijk.mp3'); },

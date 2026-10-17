@@ -1,7 +1,8 @@
 (function () {
   'use strict';
   var LC = window.LC, store = LC.store, audio = LC.audio;
-  var state = { profile: null, glyph: null, cat: 'upper', pos: 0 };
+  var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace' };
+  var F = {};
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
 
   function h(tag, cls, html) {
@@ -31,7 +32,7 @@
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
   var scr = {};
-  ['profile', 'menu', 'trace', 'bye'].forEach(function (n) {
+  ['profile', 'menu', 'trace', 'find', 'bye'].forEach(function (n) {
     scr[n] = h('div', 'screen s-' + n);
     app.appendChild(scr[n]);
   });
@@ -63,6 +64,7 @@
     audio.setMusic(store.get().settings.music);
     state.profile = key;
     buildTrace();
+    buildFind();
     buildMenu();
     show('menu');
     audio.voiceWelcome();
@@ -86,6 +88,15 @@
     sw.addEventListener('click', function () { buildProfile(); show('profile'); });
     s.appendChild(sw);
 
+    var modes = h('div', 'modes');
+    [['trace', LC.pencilSVG()], ['find', LC.searchSVG()]].forEach(function (m) {
+      var mb = h('button', 'modebtn' + (m[0] === state.game ? ' on' : ''), m[1]);
+      mb.dataset.game = m[0];
+      mb.addEventListener('click', function () { state.game = m[0]; buildMenu(); });
+      modes.appendChild(mb);
+    });
+    s.appendChild(modes);
+
     var mc = h('div', 'menu-cat', LC.catSVG(key, {}));
     var nm = h('div', 'pname'); nm.textContent = LC.CATS[key].name; mc.appendChild(nm);
     if (prof.name) { var kn = h('div', 'kname'); kn.textContent = prof.name; mc.appendChild(kn); }
@@ -104,6 +115,13 @@
       tabs.appendChild(tb);
     });
     s.appendChild(tabs);
+
+    if (state.game === 'find') {
+      var play = h('button', 'playbig', LC.playSVG());
+      play.addEventListener('click', function () { startFind(state.cat); });
+      s.appendChild(play);
+      return;
+    }
 
     var list = listFor(state.cat);
     var grid = h('div', 'grid ' + (state.cat === 'digit' ? 'g5' : state.cat === 'name' ? 'gname' : 'g7'));
@@ -160,7 +178,7 @@
   }
 
   function setMood(m) {
-    var c = T.cat;
+    var c = current === 'find' ? F.cat : T.cat;
     if (!c) return;
     clearTimeout(moodTimer);
     c.classList.remove('idle', 'happy', 'oops', 'help');
@@ -228,16 +246,150 @@
     }, 3800);
   }
 
-  function burst() {
+  function burst(container) {
+    container = container || T.balloons;
     for (var i = 0; i < 7; i++) {
       var b = h('div', 'balloon', LC.balloonSVG(LC.BALLOON_COLORS[i % LC.BALLOON_COLORS.length]));
       b.style.left = (6 + Math.random() * 84) + '%';
       b.style.setProperty('--dx', (Math.random() * 16 - 8) + 'vw');
       b.style.animationDelay = (i * 0.16) + 's';
       b.style.animationDuration = (3.6 + Math.random() * 1.2) + 's';
-      T.balloons.appendChild(b);
+      container.appendChild(b);
       (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 6500); })(b);
     }
+  }
+
+  // ---------- Find the letter ----------
+  var ROUNDS = 6;
+  var LOOKALIKES = [['b', 'd', 'p', 'q'], ['m', 'n', 'u', 'w'], ['M', 'N', 'W'], ['E', 'F'], ['O', 'Q', 'C', 'G'], ['P', 'R', 'B'], ['6', '9'], ['2', '5']];
+
+  function lookalike(a, b) {
+    return LOOKALIKES.some(function (g) { return g.indexOf(a) >= 0 && g.indexOf(b) >= 0; });
+  }
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function poolFor(cat) {
+    if (cat !== 'name') return LC.CATEGORIES[cat].slice();
+    var seen = {}, pool = [];
+    nameLetters(state.profile).forEach(function (k) { if (!seen[k]) { seen[k] = 1; pool.push(k); } });
+    if (pool.length < 3) LC.CATEGORIES.upper.forEach(function (k) { if (!seen[k] && pool.length < 6) { seen[k] = 1; pool.push(k); } });
+    return pool;
+  }
+
+  function buildFind() {
+    var s = scr.find;
+    s.textContent = '';
+    var home = h('button', 'home', LC.homeSVG());
+    home.addEventListener('click', function () { leaveFind(); buildMenu(); show('menu'); audio.voiceChoose(); });
+    var cat = h('div', 'trace-cat', LC.catSVG(state.profile, {}));
+    var bubble = h('div', 'bubble');
+    cat.appendChild(bubble);
+    cat.addEventListener('click', function () { sayTarget(); });
+    var dots = h('div', 'dots');
+    var choices = h('div', 'choices');
+    var balloons = h('div', 'balloons');
+    s.appendChild(home); s.appendChild(cat); s.appendChild(dots); s.appendChild(choices); s.appendChild(balloons);
+    F = { cat: cat.querySelector('.cat'), bubble: bubble, dots: dots, choices: choices, balloons: balloons,
+      gen: 0, timer: 0, n: 0, pool: [], target: null, wrong: 0, locked: true, kind: 'upper' };
+  }
+
+  function leaveFind() {
+    clearTimeout(F.timer); F.gen++;
+    audio.stopVoice();
+  }
+
+  function startFind(cat) {
+    var pool = poolFor(cat);
+    if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
+    F.kind = cat; F.pool = pool; F.n = 0; F.target = null;
+    show('find');
+    nextRound();
+  }
+
+  function sayTarget() {
+    if (!F.target) return;
+    var gen = F.gen;
+    audio.voiceLetter(LC.GLYPHS[F.target].sound).then(function (heard) {
+      if (gen !== F.gen) return;
+      // With no recording yet the cat shows the letter in a speech bubble instead.
+      F.bubble.innerHTML = heard ? '' : LC.glyphSVG(F.target, { sw: 16 });
+      F.bubble.classList.toggle('on', !heard);
+    });
+  }
+
+  function nextRound() {
+    clearTimeout(F.timer);
+    F.gen++;
+    var gen = F.gen;
+    if (F.n >= ROUNDS) { findFinale(gen); return; }
+    F.n++; F.wrong = 0; F.locked = false;
+
+    var candidates = F.pool.filter(function (k) { return k !== F.target; });
+    var target = candidates[Math.floor(Math.random() * candidates.length)];
+    var others = shuffle(F.pool.filter(function (k) { return k !== target && !lookalike(k, target); }));
+    if (others.length < 2) others = shuffle(F.pool.filter(function (k) { return k !== target; }));
+    var options = shuffle([target].concat(others.slice(0, 2)));
+    F.target = target;
+
+    F.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) F.dots.appendChild(h('span', 'dot' + (i < F.n - 1 ? ' on' : i === F.n - 1 ? ' cur' : '')));
+    F.choices.innerHTML = '';
+    options.forEach(function (k) {
+      var b = h('button', 'choice', LC.glyphSVG(k, { sw: 14 }));
+      b.dataset.key = k;
+      b.addEventListener('click', function () { choose(b, k, gen); });
+      F.choices.appendChild(b);
+    });
+    F.bubble.classList.remove('on');
+    setMood('idle');
+    F.timer = setTimeout(function () { if (gen === F.gen) sayTarget(); }, 500);
+  }
+
+  function choose(btn, key, gen) {
+    if (gen !== F.gen || F.locked) return;
+    if (key === F.target) {
+      F.locked = true;
+      btn.classList.add('right');
+      Array.prototype.forEach.call(F.choices.children, function (c) { if (c !== btn) c.classList.add('fade'); });
+      setMood('happy');
+      audio.chime();
+      F.bubble.classList.remove('on');
+      setTimeout(function () { if (gen === F.gen) audio.voicePraise(); }, 500);
+      burst(F.balloons);
+      F.timer = setTimeout(nextRound, 3200);
+      return;
+    }
+    F.wrong++;
+    btn.classList.add('fade');
+    btn.disabled = true;
+    setMood('oops');
+    audio.boop();
+    audio.voiceRetry();
+    if (F.wrong >= 2) {
+      var right = F.choices.querySelector('[data-key="' + F.target + '"]');
+      if (right) right.classList.add('hint');
+    }
+    F.timer = setTimeout(function () { if (gen === F.gen) sayTarget(); }, 1800);
+  }
+
+  function findFinale(gen) {
+    F.locked = true;
+    F.choices.innerHTML = '';
+    F.bubble.classList.remove('on');
+    F.dots.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) F.dots.appendChild(h('span', 'dot on'));
+    setMood('happy');
+    audio.chime(); burst(F.balloons);
+    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); } }, 1200);
+    F.timer = setTimeout(function () {
+      if (gen !== F.gen) return;
+      leaveFind(); buildMenu(); show('menu');
+    }, 5000);
   }
 
   // ---------- Goodbye ----------
@@ -253,6 +405,7 @@
   function closeGame() {
     closeModal();
     leaveTrace();
+    leaveFind();
     audio.setMusic(false);
     buildBye();
     show('bye');
@@ -282,7 +435,8 @@
   }
   function closeAndResume() {
     closeModal();
-    if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
+    if (current === 'find') startFind(F.kind);
+    else if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
     else if (current === 'menu') buildMenu();
     else if (current === 'profile') buildProfile();
   }
