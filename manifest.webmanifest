@@ -1,0 +1,10 @@
+{
+  "name": "Letters en Cijfers",
+  "short_name": "Letters",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#f7ebfb",
+  "theme_color": "#f7ebfb",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
