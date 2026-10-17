@@ -53,17 +53,21 @@
 
   // The letters of a child's name (set in the parent panel). Accents are dropped and
   // anything that is not a plain letter (spaces, hyphens) is skipped.
+  // Capital letters can be switched off in the parent panel (children learn them later at school).
+  function capsOn() { return store.get().settings.caps; }
+
   function nameLetters(profile) {
     var raw = store.get().profiles[profile].name || '';
     var plain = raw.normalize ? raw.normalize('NFD').replace(/[̀-ͯ]/g, '') : raw;
     var out = [];
     for (var i = 0; i < plain.length; i++) {
       var c = plain.charAt(i);
-      if (/[A-Za-z]/.test(c)) out.push(out.length === 0 ? c.toUpperCase() : c);
+      if (/[A-Za-z]/.test(c)) out.push(capsOn() ? (out.length === 0 ? c.toUpperCase() : c) : c.toLowerCase());
     }
     return out;
   }
   function listFor(cat) {
+    if (cat === 'upper' && !capsOn()) cat = 'lower';
     return cat === 'name' ? nameLetters(state.profile) : LC.CATEGORIES[cat];
   }
 
@@ -228,7 +232,7 @@
 
     var row = h('div', 'gcards');
     [['trace', 'Schrijven'], ['find', 'Zoeken'], ['pop', 'Prikken'], ['count', 'Tellen']].forEach(function (g, i) {
-      var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0]));
+      var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0], !capsOn()));
       c.dataset.game = g[0];
       var t = h('div', 'gtitle'); t.textContent = g[1]; c.appendChild(t);
       c.style.animationDelay = (-i * 0.9) + 's';
@@ -355,10 +359,11 @@
     s.appendChild(mc);
 
     var letters = nameLetters(key);
-    if (state.cat === 'name' && !letters.length) state.cat = 'upper';
+    if (state.cat === 'name' && !letters.length) state.cat = capsOn() ? 'upper' : 'lower';
+    if (state.cat === 'upper' && !capsOn()) state.cat = 'lower';
 
     var tabs = h('div', 'tabs');
-    var tabDefs = [['upper', 'A'], ['lower', 'a'], ['digit', '1']];
+    var tabDefs = capsOn() ? [['upper', 'A'], ['lower', 'a'], ['digit', '1']] : [['lower', 'a'], ['digit', '1']];
     if (letters.length) tabDefs.push(['name', letters[0]]);
     tabDefs.forEach(function (c) {
       var tb = h('button', 'tab' + (c[0] === state.cat ? ' on' : ''), LC.glyphSVG(c[1], { sw: 16 }) + (c[0] === 'name' ? '<span class="badge">★</span>' : ''));
@@ -536,10 +541,12 @@
   }
 
   function poolFor(cat) {
+    if (cat === 'upper' && !capsOn()) cat = 'lower';
     if (cat !== 'name') return LC.CATEGORIES[cat].slice();
     var seen = {}, pool = [];
     nameLetters(state.profile).forEach(function (k) { if (!seen[k]) { seen[k] = 1; pool.push(k); } });
-    if (pool.length < 3) LC.CATEGORIES.upper.forEach(function (k) { if (!seen[k] && pool.length < 6) { seen[k] = 1; pool.push(k); } });
+    var fill = capsOn() ? LC.CATEGORIES.upper : LC.CATEGORIES.lower;
+    if (pool.length < 3) fill.forEach(function (k) { if (!seen[k] && pool.length < 6) { seen[k] = 1; pool.push(k); } });
     return pool;
   }
 
@@ -1208,6 +1215,8 @@
       function (v) { d.settings.strict = v; store.save(); })));
     card.appendChild(row('Muziek', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.music ? 'aan' : 'uit',
       function (v) { d.settings.music = v === 'aan'; store.save(); audio.setMusic(d.settings.music); })));
+    card.appendChild(row('Hoofdletters', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.caps ? 'aan' : 'uit',
+      function (v) { d.settings.caps = v === 'aan'; if (!d.settings.caps && state.cat === 'upper') state.cat = 'lower'; store.save(); })));
     card.appendChild(row('Slim oefenen', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.adaptive ? 'aan' : 'uit',
       function (v) { d.settings.adaptive = v === 'aan'; store.save(); })));
     card.appendChild(row('Beurtwissel', seg([['0', 'Uit'], ['5', '5 min'], ['10', '10 min'], ['15', '15 min']], String(d.settings.turnMin),
@@ -1311,7 +1320,9 @@
 
     var detail = h('div', 'pdetail'); detail.textContent = 'Tik op een letter of cijfer voor details.';
     var hasData = false;
-    [['Hoofdletters', LC.CATEGORIES.upper], ['Kleine letters', LC.CATEGORIES.lower], ['Cijfers', LC.CATEGORIES.digit]].forEach(function (g) {
+    [['Hoofdletters', LC.CATEGORIES.upper], ['Kleine letters', LC.CATEGORIES.lower], ['Cijfers', LC.CATEGORIES.digit]].filter(function (g) {
+      return capsOn() || g[1] !== LC.CATEGORIES.upper;
+    }).forEach(function (g) {
       var t = h('div', 'pgtitle'); t.textContent = g[0]; card.appendChild(t);
       var grid = h('div', 'pgrid');
       g[1].forEach(function (k) {
@@ -1333,6 +1344,7 @@
 
     var bad = [];
     LC.ORDER.forEach(function (k) {
+      if (!capsOn() && LC.categoryOf(k) === 'upper') return;
       if (mastery(p, k) === 'practice') { var e = p.stats[k] || [0, 0, 0, 0]; bad.push([k, e[2] + (e[0] - e[1]) + e[3] / 2]); }
     });
     bad.sort(function (a, b) { return b[1] - a[1]; });

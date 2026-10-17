@@ -168,28 +168,33 @@
       '<g fill="none" stroke="' + (color || g.color) + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>';
   }
 
-  LC.gameCardSVG = function (kind) {
+  // lower = true shows small letters (a, m, p) instead of capitals on the pictures
+  LC.gameCardSVG = function (kind, lower) {
     var head = '<svg class="gart" viewBox="0 0 240 290" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<circle cx="40" cy="250" r="36" fill="#fff" opacity="0.18"/><circle cx="208" cy="58" r="46" fill="#fff" opacity="0.18"/>';
-    var body = '';
+    var body = '', L = lower ? ['a', 'm', 'p'] : ['A', 'M', 'P'];
     if (kind === 'trace') {
-      var A = LC.GLYPHS.A.strokes;
-      var guide = A.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      var G0 = LC.GLYPHS[L[0]], v = G0.view;
+      var guide = G0.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      var ink = lower ? G0.strokes[0] : 'M 18 148 L 60 14';
+      var tipAt = lower ? [84, 112] : [60, 14];
+      var sc = Math.min(140 / v[2], 190 / v[3]);
+      var tipX = 50 + (140 - v[2] * sc) / 2 + (tipAt[0] - v[0]) * sc, tipY = 70 + (190 - v[3] * sc) / 2 + (tipAt[1] - v[1]) * sc;
       body = sparkle(34, 52, 1.3) + sparkle(205, 215, 1.1) + sparkle(190, 30, 0.8) +
-        '<svg x="50" y="70" width="140" height="190" viewBox="0 0 120 160">' +
+        '<svg x="50" y="70" width="140" height="190" viewBox="' + v.join(' ') + '">' +
         '<g fill="none" stroke="#fff" stroke-width="28" opacity="0.6" stroke-linecap="round" stroke-linejoin="round">' + guide + '</g>' +
         '<g fill="none" stroke="#7c5cd6" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 11">' + guide + '</g>' +
-        '<path d="M 18 148 L 60 14" fill="none" stroke="#ff4f81" stroke-width="20" stroke-linecap="round"/></svg>' +
-        '<g transform="translate(120 88) rotate(32)"><g class="pencil">' +
+        '<path d="' + ink + '" fill="none" stroke="#ff4f81" stroke-width="20" stroke-linecap="round"/></svg>' +
+        '<g transform="translate(' + tipX.toFixed(1) + ' ' + tipY.toFixed(1) + ') rotate(32)"><g class="pencil">' +
         '<path d="M 0 0 L -9 -24 L 9 -24 Z" fill="#f5d6a3"/><path d="M 0 0 L -3.2 -8.5 L 3.2 -8.5 Z" fill="#3b2f55"/>' +
         '<rect x="-9" y="-108" width="18" height="84" fill="#ffcf3f"/><rect x="-2.5" y="-108" width="5" height="84" fill="#ffb300"/>' +
         '<rect x="-9.5" y="-119" width="19" height="11" fill="#b8c0cc"/><rect x="-9" y="-133" width="18" height="15" rx="6" fill="#ff8fab"/>' +
         '</g></g>';
     } else if (kind === 'find') {
       body = sparkle(34, 52, 1.2) + sparkle(205, 40, 1.4) + sparkle(30, 262, 0.9) +
-        '<rect x="12" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn('A', 22, 106, 48, 84, 15) +
-        '<rect x="86" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn('M', 96, 106, 48, 84, 15) +
-        '<rect x="160" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn('P', 170, 106, 48, 84, 15) +
+        '<rect x="12" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn(L[0], 22, 106, 48, 84, 15) +
+        '<rect x="86" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn(L[1], 96, 106, 48, 84, 15) +
+        '<rect x="160" y="92" width="68" height="112" rx="18" fill="#fff"/>' + glyphIn(L[2], 170, 106, 48, 84, 15) +
         '<g class="mag"><circle cx="122" cy="156" r="56" fill="#ffffff" fill-opacity="0.28" stroke="#ff7a59" stroke-width="13"/>' +
         '<path d="M 164 198 L 212 258" stroke="#ff7a59" stroke-width="20" stroke-linecap="round"/>' +
         '<path d="M 88 128 C 96 112 110 104 124 102" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.9"/></g>';
@@ -204,9 +209,9 @@
         star(52, 168, 0.8, 1) + star(120, 150, 0.9, 2) + star(188, 168, 0.8, 3);
     } else {
       body = sparkle(30, 40, 1.3) + sparkle(212, 36, 1.0) + sparkle(120, 270, 1.2) +
-        '<g class="bb b1">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[0], 'A', [10, 76, 80, 133]) + '</g>' +
-        '<g class="bb b2">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[2], 'M', [74, 22, 94, 157]) + '</g>' +
-        '<g class="bb b3">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[1], 'P', [152, 88, 76, 127]) + '</g>';
+        '<g class="bb b1">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[0], L[0], [10, 76, 80, 133]) + '</g>' +
+        '<g class="bb b2">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[2], L[1], [74, 22, 94, 157]) + '</g>' +
+        '<g class="bb b3">' + LC.balloonLetterSVG(LC.BALLOON_COLORS[1], L[2], [152, 88, 76, 127]) + '</g>';
     }
     return head + body + '</svg>';
   };

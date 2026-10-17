@@ -13,7 +13,7 @@
   function fresh() {
     return {
       profiles: { pinky: freshProfile(), groentje: freshProfile() },
-      settings: { strict: 'normaal', music: true, turnMin: 10, adaptive: true }
+      settings: { strict: 'normaal', music: true, turnMin: 10, adaptive: true, caps: true }
     };
   }
 
@@ -64,6 +64,7 @@
         if (typeof s.music === 'boolean') d.settings.music = s.music;
         if ([0, 5, 10, 15].indexOf(s.turnMin) >= 0) d.settings.turnMin = s.turnMin;
         if (typeof s.adaptive === 'boolean') d.settings.adaptive = s.adaptive;
+        if (typeof s.caps === 'boolean') d.settings.caps = s.caps;
       }
     } catch (e) { /* fall back to defaults */ }
     return d;
