@@ -2,74 +2,183 @@
   'use strict';
   var LC = (window.LC = window.LC || {});
 
-  var PAL = {
-    pinky: { main: '#f8a5c2', dark: '#e57ba4', light: '#ffe6f0', inner: '#ffc5da' },
-    groentje: { main: '#9fdca4', dark: '#69bb78', light: '#e6f8e4', inner: '#c8efcb' }
+  // Soft-3D cat colours. Light is always at the top left; Pinky has peach cheeks and lilac pads.
+  var FUR = {
+    pinky: {
+      furLicht: '#FFE4EE', fur: '#F5AFC8', furSchaduw: '#D97399',
+      armLicht: '#FFDDE9', armSchaduw: '#DE7FA4', diep: '#B9587F',
+      buik: ['#FFFFFF', '#FFEAF1', '#F6CADB'],
+      iris: ['#D2EBFF', '#8DC2F0', '#4F86C6'],
+      oorRand1: '#F0A6C1', oorRand2: '#E596B5', binnenoorRand: '#F7B9CF',
+      blos: '#FF9A76', blosDekking: '0.7', kussens: '#B68AD9'
+    },
+    groentje: {
+      furLicht: '#E4F7DC', fur: '#AEDEA5', furSchaduw: '#70B46C',
+      armLicht: '#DDF4D4', armSchaduw: '#78BC74', diep: '#4E9550',
+      buik: ['#FFFFFF', '#EFF9EB', '#CAE8C3'],
+      iris: ['#FFF0C2', '#F6C766', '#D4923A'],
+      oorRand1: '#A6DA9D', oorRand2: '#93CC8C', binnenoorRand: '#F3BFCB',
+      blos: '#F4A7A0', blosDekking: '0.6', kussens: '#F3A9BB'
+    }
   };
+  var catSeq = 0;   // every cat drawing gets its own gradient ids
+
+  function catDefs(p, k) {
+    return '<defs>' +
+      '<radialGradient id="' + p + '-rim" cx="0.3" cy="0.25" r="0.85"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.86" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.97" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.5"/></radialGradient>' +
+      '<radialGradient id="' + p + '-grond" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#3D3355" stop-opacity="0.24"/><stop offset="1" stop-color="#3D3355" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="' + p + '-puf" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.32"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="' + p + '-neus" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F49AB4"/><stop offset="1" stop-color="#D85F80"/></linearGradient>' +
+      '<linearGradient id="' + p + '-oor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E88AAB"/><stop offset="1" stop-color="#FFD3E2"/></linearGradient>' +
+      '<radialGradient id="' + p + '-fur" cx="0.36" cy="0.28" r="0.78"><stop offset="0" stop-color="' + k.furLicht + '"/><stop offset="0.45" stop-color="' + k.fur + '"/><stop offset="1" stop-color="' + k.furSchaduw + '"/></radialGradient>' +
+      '<linearGradient id="' + p + '-arm" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="' + k.armLicht + '"/><stop offset="0.5" stop-color="' + k.fur + '"/><stop offset="1" stop-color="' + k.armSchaduw + '"/></linearGradient>' +
+      '<radialGradient id="' + p + '-buik" cx="0.42" cy="0.32" r="0.72"><stop offset="0" stop-color="' + k.buik[0] + '"/><stop offset="0.55" stop-color="' + k.buik[1] + '"/><stop offset="1" stop-color="' + k.buik[2] + '"/></radialGradient>' +
+      '<radialGradient id="' + p + '-iris" cx="0.5" cy="0.85" r="0.75"><stop offset="0" stop-color="' + k.iris[0] + '"/><stop offset="0.5" stop-color="' + k.iris[1] + '"/><stop offset="1" stop-color="' + k.iris[2] + '"/></radialGradient>' +
+      '</defs>';
+  }
+
+  function catBody(p, k) {
+    var fur = 'url(#' + p + '-fur)', rim = 'url(#' + p + '-rim)', grond = 'url(#' + p + '-grond)';
+    return '<ellipse cx="104" cy="212" rx="82" ry="10" fill="' + grond + '"/>' +
+      '<g class="tail kat-staart">' +
+      '<path d="M138 188 C164 192 180 176 178 156" fill="none" stroke="' + k.armSchaduw + '" stroke-width="20" stroke-linecap="round"/>' +
+      '<path d="M136 186 C161 189 175 174 174 156" fill="none" stroke="' + k.fur + '" stroke-width="12" stroke-linecap="round"/>' +
+      '<g class="kat-staartpunt">' +
+      '<path d="M178 156 C177 138 170 126 180 110" fill="none" stroke="' + k.armSchaduw + '" stroke-width="18" stroke-linecap="round"/>' +
+      '<path d="M174 156 C173 139 166 127 176 111" fill="none" stroke="' + k.fur + '" stroke-width="10" stroke-linecap="round"/>' +
+      '<path d="M171 146 C169 136 168 128 174 118" fill="none" stroke="' + k.furLicht + '" stroke-width="3.5" stroke-linecap="round" opacity="0.85"/>' +
+      '</g></g>' +
+      '<path d="M62 202 C52 166 68 126 100 124 C132 126 148 166 138 202 Z" fill="' + fur + '"/>' +
+      '<path d="M62 202 C52 166 68 126 100 124 C132 126 148 166 138 202 Z" fill="' + rim + '"/>' +
+      '<ellipse cx="68" cy="180" rx="24" ry="23" fill="' + fur + '"/>' +
+      '<ellipse cx="132" cy="180" rx="24" ry="23" fill="' + fur + '"/>' +
+      '<ellipse cx="132" cy="180" rx="24" ry="23" fill="' + rim + '"/>' +
+      '<ellipse cx="60" cy="170" rx="8" ry="5" transform="rotate(-35 60 170)" fill="#FFFFFF" opacity="0.45"/>' +
+      '<ellipse cx="100" cy="168" rx="22" ry="30" fill="url(#' + p + '-buik)"/>' +
+      '<ellipse cx="60" cy="203" rx="19" ry="10" fill="' + fur + '"/>' +
+      '<ellipse cx="140" cy="203" rx="19" ry="10" fill="' + fur + '"/>' +
+      '<path d="M55 200 L55 207 M65 200 L65 207 M135 200 L135 207 M145 200 L145 207" stroke="' + k.diep + '" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>' +
+      '<ellipse cx="54" cy="198" rx="6" ry="2.8" fill="#FFFFFF" opacity="0.6"/>' +
+      '<ellipse cx="100" cy="134" rx="46" ry="11" fill="' + grond + '"/>';
+  }
+
+  function catHead(p, k) {
+    var fur = 'url(#' + p + '-fur)', rim = 'url(#' + p + '-rim)', puf = 'url(#' + p + '-puf)', oor = 'url(#' + p + '-oor)';
+    var vorm = 'M100 30 C142 30 166 56 166 88 C166 122 136 138 100 138 C64 138 34 122 34 88 C34 56 58 30 100 30 Z';
+    return '<path d="M48 78 L55 18 Q57 10 65 14 L100 46 Z" fill="' + fur + '" stroke="' + k.oorRand1 + '" stroke-width="10" stroke-linejoin="round"/>' +
+      '<path d="M152 78 L145 18 Q143 10 135 14 L100 46 Z" fill="' + fur + '" stroke="' + k.oorRand2 + '" stroke-width="10" stroke-linejoin="round"/>' +
+      '<path d="M61 60 L63 28 L84 47 Z" fill="' + oor + '" stroke="' + k.binnenoorRand + '" stroke-width="6" stroke-linejoin="round"/>' +
+      '<path d="M139 60 L137 28 L116 47 Z" fill="' + oor + '" stroke="' + k.binnenoorRand + '" stroke-width="6" stroke-linejoin="round"/>' +
+      '<path d="M54 64 L58 22" stroke="' + k.furLicht + '" stroke-width="3" stroke-linecap="round" opacity="0.8"/>' +
+      '<path d="' + vorm + '" fill="' + fur + '"/>' +
+      '<path d="' + vorm + '" fill="' + rim + '"/>' +
+      '<ellipse cx="62" cy="108" rx="27" ry="21" fill="' + puf + '"/>' +
+      '<ellipse cx="138" cy="108" rx="27" ry="21" fill="' + puf + '"/>' +
+      '<ellipse cx="70" cy="52" rx="21" ry="10" transform="rotate(-30 70 52)" fill="#FFFFFF" opacity="0.45"/>' +
+      '<path d="M88 36 L90 50 M100 34 L100 49 M112 36 L110 50" stroke="' + k.diep + '" stroke-width="5" stroke-linecap="round" opacity="0.75"/>';
+  }
+
+  function catEye(p, cx) {
+    return '<ellipse cx="' + cx + '" cy="86" rx="14" ry="16" fill="#3D3355"/>' +
+      '<ellipse cx="' + cx + '" cy="87" rx="11.5" ry="13.5" fill="url(#' + p + '-iris)"/>' +
+      '<ellipse cx="' + cx + '" cy="87" rx="6.5" ry="10" fill="#2B2340"/>' +
+      '<ellipse cx="' + cx + '" cy="80" rx="12" ry="7" fill="#3D3355" opacity="0.25"/>' +
+      '<circle cx="' + (cx - 6) + '" cy="79" r="5.5" fill="#FFFFFF"/>' +
+      '<circle cx="' + (cx + 5) + '" cy="93" r="2.5" fill="#FFFFFF" opacity="0.85"/>';
+  }
+
+  function catFace(p, k) {
+    var buik = 'url(#' + p + '-buik)';
+    return '<ellipse cx="76" cy="88" rx="18" ry="20" fill="' + k.furSchaduw + '" opacity="0.22"/>' +
+      '<ellipse cx="124" cy="88" rx="18" ry="20" fill="' + k.furSchaduw + '" opacity="0.22"/>' +
+      '<g class="eyes-open kat-oog">' + catEye(p, 76) + catEye(p, 124) + '</g>' +
+      // happy: closed smiling eyes
+      '<path class="eyes-happy" d="M62 92 Q76 76 90 92 M110 92 Q124 76 138 92" fill="none" stroke="#3D3355" stroke-width="5" stroke-linecap="round"/>' +
+      '<ellipse cx="60" cy="112" rx="11" ry="6.5" fill="' + k.blos + '" opacity="' + k.blosDekking + '"/>' +
+      '<ellipse cx="140" cy="112" rx="11" ry="6.5" fill="' + k.blos + '" opacity="' + k.blosDekking + '"/>' +
+      '<ellipse cx="91" cy="110" rx="12" ry="9" fill="' + buik + '"/>' +
+      '<ellipse cx="109" cy="110" rx="12" ry="9" fill="' + buik + '"/>' +
+      '<ellipse cx="100" cy="121" rx="8" ry="5" fill="' + buik + '"/>' +
+      '<circle cx="87" cy="108" r="1.3" fill="' + k.diep + '" opacity="0.5"/><circle cx="84" cy="112" r="1.3" fill="' + k.diep + '" opacity="0.5"/>' +
+      '<circle cx="113" cy="108" r="1.3" fill="' + k.diep + '" opacity="0.5"/><circle cx="116" cy="112" r="1.3" fill="' + k.diep + '" opacity="0.5"/>' +
+      '<path d="M93 100 Q100 96 107 100 Q104 107 100 108 Q96 107 93 100 Z" fill="url(#' + p + '-neus)"/>' +
+      '<ellipse cx="98" cy="100.5" rx="2.6" ry="1.3" fill="#FFFFFF" opacity="0.8"/>' +
+      '<path class="mouth-smile" d="M100 108 L100 112 M90 112 Q95 118 100 112 Q105 118 110 112" fill="none" stroke="#3D3355" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path class="mouth-happy" d="M90 112 Q100 133 110 112 Z" fill="#C2456B" stroke="#3D3355" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M58 100 L30 94 M58 107 L28 108 M60 114 L33 122 M142 100 L170 94 M142 107 L172 108 M140 114 L167 122" stroke="#B9AACF" stroke-width="2.5" stroke-linecap="round"/>';
+  }
+
+  function catPaw(p, k, cx) {
+    return '<ellipse cx="' + cx + '" cy="198" rx="15" ry="10" fill="url(#' + p + '-fur)"/>' +
+      '<path d="M' + (cx - 5) + ' 195 L' + (cx - 5) + ' 202 M' + (cx + 5) + ' 195 L' + (cx + 5) + ' 202" stroke="' + k.diep + '" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>' +
+      '<ellipse cx="' + (cx - 5) + '" cy="194" rx="5" ry="2.5" fill="#FFFFFF" opacity="0.6"/>';
+  }
+
+  // front legs; the left one is the waving arm (shoulder, then elbow)
+  function catPaws(p, k) {
+    var arm = 'url(#' + p + '-arm)';
+    return '<g class="paws-g">' +
+      '<rect x="107" y="140" width="24" height="58" rx="12" fill="' + arm + '"/>' +
+      catPaw(p, k, 119) +
+      '<g class="kat-bovenarm">' +
+      '<rect x="69" y="140" width="24" height="36" rx="12" fill="' + arm + '"/>' +
+      '<g class="kat-onderarm">' +
+      '<rect x="69.5" y="162" width="23" height="38" rx="11.5" fill="' + arm + '"/>' +
+      catPaw(p, k, 81) +
+      '<g class="kat-kussens" opacity="0">' +
+      '<ellipse cx="81" cy="196" rx="6" ry="4.2" fill="' + k.kussens + '"/>' +
+      '<circle cx="73" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
+      '<circle cx="81" cy="204" r="2.6" fill="' + k.kussens + '"/>' +
+      '<circle cx="89" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
+      '</g></g></g></g>';
+  }
   LC.CATS = { pinky: { name: 'Pinky' }, groentje: { name: 'Groentje' } };
   LC.BALLOON_COLORS = ['#ff8fab', '#8ecae6', '#ffd166', '#b5e48c', '#cdb4db', '#ffb4a2'];
 
-  var EYE = '#3b2f55';
 
   // Clothes for the cats, drawn in the cat's own coordinates (head centre 150,128).
   // where: back = behind the body, head = moves with the head, front = over the body.
   var ACC = {
-    bow: { where: 'head', svg: '<g transform="translate(98 58) rotate(-18)"><path d="M 0 0 L -28 -15 L -28 15 Z" fill="#ff5c8a"/><path d="M 0 0 L 28 -15 L 28 15 Z" fill="#ff5c8a"/><circle r="8" fill="#e6396b"/></g>' },
-    flower: { where: 'head', svg: '<g transform="translate(214 62)"><circle cx="0" cy="-15" r="11" fill="#fff"/><circle cx="14" cy="-5" r="11" fill="#fff"/><circle cx="9" cy="12" r="11" fill="#fff"/><circle cx="-9" cy="12" r="11" fill="#fff"/><circle cx="-14" cy="-5" r="11" fill="#fff"/><circle r="9" fill="#ffd23f"/></g>' },
-    party: { where: 'head', svg: '<path d="M 150 -14 L 108 56 L 192 56 Z" fill="#7c5cd6"/><path d="M 132 22 L 168 22 L 178 40 L 122 40 Z" fill="#ff8fab"/><circle cx="140" cy="48" r="5" fill="#ffd23f"/><circle cx="162" cy="46" r="5" fill="#ffd23f"/><circle cx="150" cy="-14" r="10" fill="#ffd23f"/>' },
-    wizard: { where: 'head', svg: '<path d="M 104 56 C 130 40 140 -10 160 -56 C 168 -20 184 30 196 56 Z" fill="#5b3fa6"/><ellipse cx="150" cy="58" rx="80" ry="15" fill="#4a3290"/><path d="M 150 14 L 154 24 L 165 24 L 156 31 L 160 41 L 150 35 L 140 41 L 144 31 L 135 24 L 146 24 Z" fill="#ffd23f"/>' },
-    crown: { where: 'head', svg: '<path d="M 108 54 L 106 14 L 128 34 L 150 4 L 172 34 L 194 14 L 192 54 Z" fill="#ffd23f" stroke="#e0a800" stroke-width="5" stroke-linejoin="round"/><circle cx="150" cy="40" r="6" fill="#ff4f81"/><circle cx="124" cy="44" r="4.5" fill="#4cc9f0"/><circle cx="176" cy="44" r="4.5" fill="#4cc9f0"/>' },
-    shades: { where: 'head', svg: '<rect x="82" y="100" width="56" height="42" rx="16" fill="#2b2140"/><rect x="162" y="100" width="56" height="42" rx="16" fill="#2b2140"/><rect x="136" y="112" width="28" height="9" fill="#2b2140"/><path d="M 92 112 L 108 108 M 172 112 L 188 108" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.6"/>' },
-    hearts: { where: 'head', svg: '<g transform="translate(110 124) scale(1.55)"><path d="M 0 10 C -24 -6 -16 -28 0 -15 C 16 -28 24 -6 0 10 Z" fill="#ff4f81" opacity="0.92"/><path d="M -9 -10 C -13 -8 -13 -4 -12 -2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><g transform="translate(190 124) scale(1.55)"><path d="M 0 10 C -24 -6 -16 -28 0 -15 C 16 -28 24 -6 0 10 Z" fill="#ff4f81" opacity="0.92"/><path d="M -9 -10 C -13 -8 -13 -4 -12 -2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><path d="M 134 118 L 166 118" stroke="#ff4f81" stroke-width="5"/>' },
-    cape: { where: 'back', svg: '<path d="M 98 214 C 52 270 40 330 62 346 L 238 346 C 260 330 248 270 202 214 Z" fill="#ef476f"/><path d="M 62 346 L 238 346 L 232 334 L 68 334 Z" fill="#c9304f"/>' },
+    bow: { where: 'head', svg: '<g transform="translate(0 6)"><g transform="translate(98 58) rotate(-18)"><path d="M 0 0 L -28 -15 L -28 15 Z" fill="#ff5c8a"/><path d="M 0 0 L 28 -15 L 28 15 Z" fill="#ff5c8a"/><circle r="8" fill="#e6396b"/></g></g>' },
+    flower: { where: 'head', svg: '<g transform="translate(0 6)"><g transform="translate(214 62)"><circle cx="0" cy="-15" r="11" fill="#fff"/><circle cx="14" cy="-5" r="11" fill="#fff"/><circle cx="9" cy="12" r="11" fill="#fff"/><circle cx="-9" cy="12" r="11" fill="#fff"/><circle cx="-14" cy="-5" r="11" fill="#fff"/><circle r="9" fill="#ffd23f"/></g></g>' },
+    party: { where: 'head', svg: '<g transform="translate(0 8)"><path d="M 150 -14 L 108 56 L 192 56 Z" fill="#7c5cd6"/><path d="M 132 22 L 168 22 L 178 40 L 122 40 Z" fill="#ff8fab"/><circle cx="140" cy="48" r="5" fill="#ffd23f"/><circle cx="162" cy="46" r="5" fill="#ffd23f"/><circle cx="150" cy="-14" r="10" fill="#ffd23f"/></g>' },
+    wizard: { where: 'head', svg: '<g transform="translate(0 8)"><path d="M 104 56 C 130 40 140 -10 160 -56 C 168 -20 184 30 196 56 Z" fill="#5b3fa6"/><ellipse cx="150" cy="58" rx="80" ry="15" fill="#4a3290"/><path d="M 150 14 L 154 24 L 165 24 L 156 31 L 160 41 L 150 35 L 140 41 L 144 31 L 135 24 L 146 24 Z" fill="#ffd23f"/></g>' },
+    crown: { where: 'head', svg: '<g transform="translate(0 8)"><path d="M 108 54 L 106 14 L 128 34 L 150 4 L 172 34 L 194 14 L 192 54 Z" fill="#ffd23f" stroke="#e0a800" stroke-width="5" stroke-linejoin="round"/><circle cx="150" cy="40" r="6" fill="#ff4f81"/><circle cx="124" cy="44" r="4.5" fill="#4cc9f0"/><circle cx="176" cy="44" r="4.5" fill="#4cc9f0"/></g>' },
+    shades: { where: 'head', svg: '<g transform="translate(0 12)"><rect x="82" y="100" width="56" height="42" rx="16" fill="#2b2140"/><rect x="162" y="100" width="56" height="42" rx="16" fill="#2b2140"/><rect x="136" y="112" width="28" height="9" fill="#2b2140"/><path d="M 92 112 L 108 108 M 172 112 L 188 108" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.6"/></g>' },
+    hearts: { where: 'head', svg: '<g transform="translate(0 12)"><g transform="translate(110 124) scale(1.55)"><path d="M 0 10 C -24 -6 -16 -28 0 -15 C 16 -28 24 -6 0 10 Z" fill="#ff4f81" opacity="0.92"/><path d="M -9 -10 C -13 -8 -13 -4 -12 -2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><g transform="translate(190 124) scale(1.55)"><path d="M 0 10 C -24 -6 -16 -28 0 -15 C 16 -28 24 -6 0 10 Z" fill="#ff4f81" opacity="0.92"/><path d="M -9 -10 C -13 -8 -13 -4 -12 -2" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></g><path d="M 134 118 L 166 118" stroke="#ff4f81" stroke-width="5"/></g>' },
+    cape: { where: 'back', svg: '<path d="M 98 206 C 54 240 40 296 56 316 L 244 316 C 260 296 246 240 202 206 Z" fill="#ef476f"/><path d="M 56 316 L 244 316 L 240 304 L 60 304 Z" fill="#c9304f"/>' },
     scarf: { where: 'front', svg: '<path d="M 94 214 Q 150 246 206 214 L 212 238 Q 150 272 88 238 Z" fill="#4cc9f0"/><path d="M 118 232 L 126 252 M 150 240 L 150 262 M 182 232 L 174 252" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.7"/><rect x="170" y="238" width="26" height="60" rx="10" fill="#4cc9f0"/><path d="M 170 262 L 196 262 M 170 280 L 196 280" stroke="#fff" stroke-width="5" opacity="0.7"/>' }
   };
 
   LC.catSVG = function (key, opts) {
     opts = opts || {};
-    var c = PAL[key];
-    var vb = opts.vb || (opts.head ? '45 5 210 215' : '0 0 300 345');
+    var k = FUR[key], p = 'kt' + (catSeq++);
+    var vb = opts.vb || (opts.head ? '33 -19 234 246' : '0 0 300 345');
     var o = opts.outfit || {}, back = '', onHead = '', front = '';
     ['head', 'face', 'body'].forEach(function (slot) {
       var a = o[slot] && ACC[o[slot]];
       if (!a) return;
       if (a.where === 'back') back += a.svg; else if (a.where === 'front') front += a.svg; else onHead += a.svg;
     });
+    // the drawing is made in a 200 x 240 box; this puts the head centre at (150,128)
+    var T = '<g transform="translate(0 2) scale(1.5)">';
     return '' +
       '<svg class="cat ' + (opts.cls || 'idle') + '" viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      catDefs(p, k) +
       back +
-      '<path class="tail" d="M 215 296 C 290 300 300 215 262 196" fill="none" stroke="' + c.main + '" stroke-width="26" stroke-linecap="round"/>' +
-      '<g class="body-g">' +
-      '<ellipse cx="150" cy="262" rx="84" ry="76" fill="' + c.main + '"/>' +
-      '<ellipse cx="150" cy="278" rx="52" ry="52" fill="' + c.light + '"/>' +
-      '<ellipse cx="112" cy="326" rx="30" ry="17" fill="' + c.main + '" stroke="' + c.dark + '" stroke-width="3"/>' +
-      '<ellipse cx="188" cy="326" rx="30" ry="17" fill="' + c.main + '" stroke="' + c.dark + '" stroke-width="3"/>' +
-      '<path d="M 104 322 L 104 332 M 120 322 L 120 332 M 180 322 L 180 332 M 196 322 L 196 332" stroke="' + c.dark + '" stroke-width="3" stroke-linecap="round"/>' +
-      '</g>' +
-      '<g class="head-g">' +
-      '<path d="M 62 108 L 74 20 L 132 66 Z" fill="' + c.main + '" stroke="' + c.main + '" stroke-width="10" stroke-linejoin="round"/>' +
-      '<path d="M 238 108 L 226 20 L 168 66 Z" fill="' + c.main + '" stroke="' + c.main + '" stroke-width="10" stroke-linejoin="round"/>' +
-      '<path d="M 80 90 L 84 46 L 114 68 Z" fill="' + c.inner + '"/>' +
-      '<path d="M 220 90 L 216 46 L 186 68 Z" fill="' + c.inner + '"/>' +
-      '<ellipse cx="150" cy="128" rx="104" ry="90" fill="' + c.main + '"/>' +
-      '<path d="M 150 40 L 150 66 M 128 44 L 133 66 M 172 44 L 167 66" stroke="' + c.dark + '" stroke-width="7" stroke-linecap="round" fill="none"/>' +
-      '<circle cx="82" cy="150" r="17" fill="#ff9db8" opacity="0.45"/>' +
-      '<circle cx="218" cy="150" r="17" fill="#ff9db8" opacity="0.45"/>' +
-      '<g class="eyes-open">' +
-      '<ellipse cx="110" cy="122" rx="14" ry="18" fill="' + EYE + '"/><ellipse cx="190" cy="122" rx="14" ry="18" fill="' + EYE + '"/>' +
-      '<circle cx="115" cy="115" r="5" fill="#fff"/><circle cx="195" cy="115" r="5" fill="#fff"/>' +
-      '</g>' +
-      '<g class="eyes-happy" fill="none" stroke="' + EYE + '" stroke-width="7" stroke-linecap="round">' +
-      '<path d="M 94 128 Q 110 106 126 128"/><path d="M 174 128 Q 190 106 206 128"/>' +
-      '</g>' +
-      '<path d="M 141 146 Q 150 142 159 146 Q 155 156 150 158 Q 145 156 141 146 Z" fill="#ff7f9f"/>' +
-      '<path class="mouth-smile" d="M 150 158 L 150 166 M 150 166 Q 138 178 124 168 M 150 166 Q 162 178 176 168" stroke="' + EYE + '" stroke-width="4" fill="none" stroke-linecap="round"/>' +
-      '<path class="mouth-happy" d="M 128 164 Q 150 200 172 164 Z" fill="#c2456b" stroke="' + EYE + '" stroke-width="4" stroke-linejoin="round"/>' +
-      '<path d="M 70 158 L 28 150 M 70 168 L 26 172 M 72 178 L 34 192 M 230 158 L 272 150 M 230 168 L 274 172 M 228 178 L 266 192" stroke="#8a7aa6" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>' +
-      onHead +
-      '</g>' +
+      '<g class="body-g">' + T + catBody(p, k) + '</g></g>' +
+      '<g class="head-g">' + T + catHead(p, k) + catFace(p, k) + '</g>' + onHead + '</g>' +
+      '<g transform="translate(0 2) scale(1.5)">' + catPaws(p, k) + '</g>' +
       front +
       '</svg>';
+  };
+
+  // One wave (2.7 s). Not in previews, not while happy or asleep, and a second tap does nothing.
+  LC.catWave = function (svg) {
+    var cl = svg && svg.classList;
+    if (!cl || cl.contains('zwaait') || cl.contains('still') || cl.contains('happy') || cl.contains('sleep')) return;
+    cl.add('zwaait');
+    setTimeout(function () { cl.remove('zwaait'); }, 2700);
   };
 
   // Doll house things. Drawn around (0,0) = middle of the bottom edge; `at` is where
