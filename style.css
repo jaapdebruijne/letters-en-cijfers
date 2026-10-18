@@ -14,16 +14,37 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .cat .eyes-happy, .cat .mouth-happy { display: none; }
 .cat.happy .eyes-open, .cat.happy .mouth-smile, .cat.sleep .eyes-open { display: none; }
 .cat.happy .eyes-happy, .cat.happy .mouth-happy, .cat.sleep .eyes-happy { display: inline; }
-.cat .tail { transform-origin: 215px 296px; animation: wag 2.8s ease-in-out infinite; }
-.cat .body-g { transform-origin: 150px 330px; animation: breathe 4s ease-in-out infinite; }
-.cat .eyes-open { transform-origin: 150px 122px; animation: blink 5s infinite; }
+.cat .kat-staart { transform-box: fill-box; transform-origin: 0% 89%; animation: kat-staart 2.8s ease-in-out infinite; }
+.cat .kat-staartpunt { transform-box: fill-box; transform-origin: 70% 100%; animation: kat-punt 2.8s ease-in-out infinite; animation-delay: -0.5s; }
+.cat .kat-oog { transform-box: fill-box; transform-origin: center; animation: kat-knipper 4.6s ease-in-out infinite; }
 .cat.happy { animation: hop 0.55s ease-out 3; }
 .cat.oops .head-g { transform-origin: 150px 210px; animation: tilt 1.1s ease-in-out 1; }
 .cat.help .head-g { transform-origin: 150px 210px; animation: nod 1s ease-in-out 3; }
-.cat.sleep .tail, .cat.sleep .body-g { animation: none; }
-@keyframes wag { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(8deg); } }
-@keyframes breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
-@keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+.cat.sleep .kat-staart, .cat.sleep .kat-staartpunt { animation: none; }
+/* waving: the class zwaait is added for 2.7 s (shoulder, then elbow, then the paw pads show) */
+.cat .kat-bovenarm { transform-box: fill-box; transform-origin: 50% 4%; }
+.cat .kat-onderarm { transform-box: fill-box; transform-origin: 50% 15%; }
+.cat .kat-kussens { opacity: 0; }
+.cat.zwaait .kat-bovenarm { animation: kat-schouder 2.6s ease-in-out 1; }
+.cat.zwaait .kat-onderarm { animation: kat-elleboog 2.6s ease-in-out 1; }
+.cat.zwaait .kat-kussens { animation: kat-kussens 2.6s ease-in-out 1; }
+@keyframes kat-staart { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(9deg); } }
+@keyframes kat-punt { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(16deg); } }
+@keyframes kat-knipper { 0%, 91%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.08); } 97% { transform: scaleY(1); } }
+@keyframes kat-schouder {
+  0% { transform: rotate(0deg); } 20% { transform: rotate(112deg); } 45% { transform: rotate(106deg); }
+  65% { transform: rotate(114deg); } 82% { transform: rotate(110deg); } 100% { transform: rotate(0deg); }
+}
+@keyframes kat-elleboog {
+  0% { transform: rotate(0deg); } 20% { transform: rotate(68deg); } 32% { transform: rotate(44deg); }
+  44% { transform: rotate(90deg); } 56% { transform: rotate(44deg); } 68% { transform: rotate(90deg); }
+  82% { transform: rotate(66deg); } 100% { transform: rotate(0deg); }
+}
+@keyframes kat-kussens { 0%, 12% { opacity: 0; } 20%, 82% { opacity: 1; } 92%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .cat .kat-staart, .cat .kat-staartpunt, .cat .kat-oog,
+  .cat.zwaait .kat-bovenarm, .cat.zwaait .kat-onderarm, .cat.zwaait .kat-kussens { animation: none; }
+}
 @keyframes hop { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-3vh); } }
 @keyframes tilt { 0%, 100% { transform: rotate(0); } 35% { transform: rotate(-7deg); } 70% { transform: rotate(5deg); } }
 @keyframes nod { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
@@ -158,7 +179,7 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 @keyframes swpulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
 
 /* stars, shop and doll house */
-.cat.still .tail, .cat.still .body-g, .cat.still .eyes-open { animation: none; }
+.cat.still .kat-staart, .cat.still .kat-staartpunt, .cat.still .kat-oog { animation: none; }
 .starpill { position: absolute; left: 50%; top: 3vh; transform: translateX(-50%); background: #fff; color: #e0a800; font-size: 5.4vh; font-weight: 800;
   border-radius: 6vh; padding: 0.6vh 2.4vw; box-shadow: 0 0.8vh 0 rgba(120, 90, 160, 0.16); pointer-events: none; white-space: nowrap; }
 .starpill.big { font-size: 6vh; }
