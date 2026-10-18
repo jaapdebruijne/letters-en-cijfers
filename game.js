@@ -109,9 +109,25 @@
     if (timeupEl && timeupEl.parentNode) timeupEl.parentNode.removeChild(timeupEl);
     timeupEl = null;
   }
+  // The turn clock is kept in localStorage, so a page reload (Android does that a lot) does not
+  // start the ten minutes again. It is only picked up again by the same cat within 20 minutes.
+  var TURN_KEY = 'lcl.turn';
+  function saveTurn() {
+    try { localStorage.setItem(TURN_KEY, JSON.stringify({ p: state.profile, ms: turn.ms, due: turn.due, grace: turn.grace, at: Date.now() })); } catch (e) { /* no storage: fine */ }
+  }
+  function clearTurn() { try { localStorage.removeItem(TURN_KEY); } catch (e) { /* ignore */ } }
   function turnReset() {
     turn.ms = 0; turn.due = false; turn.grace = 0;
     removeTimeup();
+    clearTurn();
+  }
+  function turnResume(key) {
+    var v = null;
+    try { v = JSON.parse(localStorage.getItem(TURN_KEY)); } catch (e) { v = null; }
+    if (v && v.p === key && Date.now() - v.at < 20 * 60000 && v.ms >= 0 && v.grace >= 0) {
+      turn.ms = v.ms; turn.due = !!v.due; turn.grace = v.grace;
+      if (turn.due) showTimeup();
+    } else turnReset();
   }
   function turnTick(dt) {
     if (!state.profile || modal || document.hidden || current === 'profile' || current === 'switch' || current === 'bye') return;
@@ -123,8 +139,9 @@
       if (turn.ms >= min * 60000) { turn.due = true; showTimeup(); }
     } else {
       turn.grace += dt;
-      if (turn.grace >= 75000) startSwitch();
+      if (turn.grace >= 75000) { startSwitch(); return; }
     }
+    saveTurn();
   }
   setInterval(function () {
     var now = Date.now(), dt = Math.min(2500, now - turn.last);
@@ -193,7 +210,7 @@
   }
 
   function pickProfile(key) {
-    turnReset();
+    turnResume(key);
     audio.unlock();
     audio.preload();
     audio.setMusic(store.get().settings.music);
