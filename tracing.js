@@ -41,24 +41,24 @@
       return { pts: pts, next: 0, cover: cover, done: false };
     });
 
-    // Cat arm: paw follows the ghost cursor during demo
+    // Floating paw that follows the ghost cursor during demo
     var ARM_COL = '#ffb3c8', ARM_COL2 = '#ff97b8';
-    var ARM_AX = g.view[0] - 40, ARM_AY = g.view[1] + g.view[3] * 0.72;
-    var armLine = mk('line', { x1: ARM_AX, y1: ARM_AY, x2: ARM_AX, y2: ARM_AY, stroke: ARM_COL, 'stroke-width': '20', 'stroke-linecap': 'round' });
-    var armPaw  = mk('circle', { cx: ARM_AX, cy: ARM_AY, r: '11', fill: ARM_COL });
-    var armT1   = mk('circle', { cx: ARM_AX - 7, cy: ARM_AY - 11, r: '5', fill: ARM_COL2 });
-    var armT2   = mk('circle', { cx: ARM_AX,     cy: ARM_AY - 14, r: '5', fill: ARM_COL2 });
-    var armT3   = mk('circle', { cx: ARM_AX + 7, cy: ARM_AY - 11, r: '5', fill: ARM_COL2 });
-    var catArm  = mk('g', { visibility: 'hidden' });
-    catArm.appendChild(armLine); catArm.appendChild(armPaw);
+    var armWrist = mk('line', { x1: 0, y1: 0, x2: 0, y2: 0, stroke: ARM_COL, 'stroke-width': '18', 'stroke-linecap': 'round' });
+    var armPaw   = mk('circle', { cx: 0, cy: 0, r: '12', fill: ARM_COL });
+    var armT1    = mk('circle', { cx: -8, cy: 0, r: '5.5', fill: ARM_COL2 });
+    var armT2    = mk('circle', { cx: 0,   cy: 0, r: '5.5', fill: ARM_COL2 });
+    var armT3    = mk('circle', { cx: 8,  cy: 0, r: '5.5', fill: ARM_COL2 });
+    var catArm   = mk('g', { visibility: 'hidden' });
+    catArm.appendChild(armWrist); catArm.appendChild(armPaw);
     catArm.appendChild(armT1); catArm.appendChild(armT2); catArm.appendChild(armT3);
 
     function moveArm(x, y) {
-      armLine.setAttribute('x2', x); armLine.setAttribute('y2', y);
-      armPaw.setAttribute('cx', x); armPaw.setAttribute('cy', y);
-      armT1.setAttribute('cx', x - 7);  armT1.setAttribute('cy', y - 11);
-      armT2.setAttribute('cx', x);      armT2.setAttribute('cy', y - 14);
-      armT3.setAttribute('cx', x + 7);  armT3.setAttribute('cy', y - 11);
+      armWrist.setAttribute('x1', x); armWrist.setAttribute('y1', y - 30);
+      armWrist.setAttribute('x2', x); armWrist.setAttribute('y2', y - 10);
+      armPaw.setAttribute('cx', x);   armPaw.setAttribute('cy', y);
+      armT1.setAttribute('cx', x - 8); armT1.setAttribute('cy', y - 10);
+      armT2.setAttribute('cx', x);     armT2.setAttribute('cy', y - 14);
+      armT3.setAttribute('cx', x + 8); armT3.setAttribute('cy', y - 10);
     }
 
     var marker = mk('circle', { r: 11, stroke: g.color }, 'marker');
