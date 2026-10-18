@@ -31,14 +31,52 @@
     g.innerHTML = LC.decorMarkup(ids, newId);
   }
 
-  // A bonus ride is earned by finishing a part well.
-  function awardTicket(container) {
-    store.addTicket(state.profile);
+  // A finished game round earns a stamp for that game. Stamps from 3 different games make a bonus
+  // ride, so the same easy game over and over gives only one stamp.
+  function earnStamp(game, container) {
+    var r = store.addStamp(state.profile, game);
     if (!container) return;
-    var t = h('div', 'ticket-toast', LC.carIconSVG() + '<span>Bonusrit!</span>');
+    var t;
+    if (r === 'ticket') t = h('div', 'ticket-toast', LC.carIconSVG() + '<span>Bonusrit!</span>');
+    else if (r === 'new') t = h('div', 'ticket-toast', '<span class="tstar">✔</span><span>Stempel ' + store.stamps(state.profile).length + ' van 3</span>');
+    else t = h('div', 'ticket-toast', '<span class="tstar">★</span><span>Probeer een ander spel!</span>');
     container.appendChild(t);
     audio.chime();
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 3600);
+  }
+
+  // Tracing goes through the letters row by row (a row of 7, for numbers 5). The child has to finish
+  // the whole row before the next one comes up; finishing a row earns the Schrijven stamp.
+  function rowSize(cat) { return cat === 'digit' ? 5 : 7; }
+  function walkOf(cat) {
+    var prof = store.get().profiles[state.profile];
+    return prof.walk[cat] || (prof.walk[cat] = { b: 0, s: [] });
+  }
+  function walkRange(cat) {
+    var list = LC.CATEGORIES[cat], size = rowSize(cat), w = walkOf(cat);
+    var rows = Math.ceil(list.length / size);
+    if (w.b >= rows) w.b = 0;
+    return { from: w.b * size, to: Math.min(list.length, w.b * size + size), rows: rows, w: w };
+  }
+  // Tracing one glyph of the current row; true when that finishes the row.
+  function walkTrace(cat, key) {
+    if (cat === 'name') return false;
+    var r = walkRange(cat), idx = LC.CATEGORIES[cat].indexOf(key);
+    if (idx < r.from || idx >= r.to) return false;
+    if (r.w.s.indexOf(key) < 0) r.w.s.push(key);
+    var full = r.w.s.length >= r.to - r.from;
+    if (full) { r.w.b = (r.w.b + 1) % r.rows; r.w.s = []; }
+    store.save();
+    return full;
+  }
+  // The next glyph of the current row that is not done yet (or -1).
+  function walkNext(cat, afterPos) {
+    var r = walkRange(cat), list = LC.CATEGORIES[cat], n = r.to - r.from;
+    for (var i = 1; i <= n; i++) {
+      var p = r.from + ((afterPos - r.from + i) % n + n) % n;
+      if (r.w.s.indexOf(list[p]) < 0) return p;
+    }
+    return -1;
   }
 
   // One star (or more) earned: it floats up and is saved for the shop.
@@ -249,6 +287,9 @@
     var tk = store.tickets(key);
     var carBtn = h('button', 'topbtn carbtn' + (tk > 0 ? ' ready' : ''), LC.carIconSVG());
     var tb = h('span', 'tbadge'); tb.textContent = String(tk); carBtn.appendChild(tb);
+    var stamped = store.stamps(key), dots = h('span', 'stampdots');
+    for (var sd = 0; sd < 3; sd++) dots.appendChild(h('i', sd < stamped.length ? 'on' : ''));
+    s.appendChild(dots);
     carBtn.addEventListener('click', function () {
       if (store.tickets(key) > 0) { startRide(); return; }
       carBtn.classList.add('nope'); audio.boop();
@@ -261,6 +302,7 @@
       var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0], !capsOn()));
       c.dataset.game = g[0];
       var t = h('div', 'gtitle'); t.textContent = g[1]; c.appendChild(t);
+      if (stamped.indexOf(g[0]) >= 0) c.appendChild(h('span', 'gstamp', '✔'));
       c.style.animationDelay = (-i * 0.9) + 's';
       c.addEventListener('click', function () {
         if (g[0] === 'count') { buildCount(); startCount(); return; }
@@ -408,11 +450,17 @@
     }
 
     var list = listFor(state.cat);
+    // The current row is marked, and the first letter in it that is not done yet bounces.
+    var rowIdx = {};
+    if (state.cat !== 'name') {
+      var wc = state.cat === 'upper' && !capsOn() ? 'lower' : state.cat, wr = walkRange(wc), wn = walkNext(wc, wr.to - 1);
+      for (var q = wr.from; q < wr.to; q++) rowIdx[q] = q === wn ? ' row next' : ' row';
+    }
     var grid = h('div', 'grid ' + (state.cat === 'digit' ? 'g5' : state.cat === 'name' ? 'gname' : 'g7'));
     list.forEach(function (k, idx) {
       var done = prof.done[k] || 0, stars = '';
       for (var j = 0; j < Math.min(5, done); j++) stars += '★';
-      var t = h('button', 'tile', LC.glyphSVG(k, { sw: 16 }));
+      var t = h('button', 'tile' + (rowIdx[idx] || ''), LC.glyphSVG(k, { sw: 16 }));
       t.dataset.key = k;
       var st = h('div', 'stars'); st.textContent = stars; t.appendChild(st);
       t.addEventListener('click', function () { openTrace(state.cat, idx); });
@@ -514,12 +562,12 @@
     store.addDone(state.profile, key);
     burst();
     gain(1, T.balloons);
-    T.run = (T.run || 0) + 1;
-    if (T.run === 5) setTimeout(function () { if (mine === token) awardTicket(T.balloons); }, 700);
-    var list = listFor(state.cat), last = state.cat === 'name' && state.pos === list.length - 1;
+    var list = listFor(state.cat), cat0 = state.cat === 'upper' && !capsOn() ? 'lower' : state.cat;
+    var rowDone = walkTrace(cat0, key);
+    var last = rowDone || (state.cat === 'name' && state.pos === list.length - 1);
     if (last) {
-      // The whole name is done: a bigger celebration, then back to the choice screen.
-      setTimeout(function () { if (mine === token) { gain(2, T.balloons); awardTicket(T.balloons); } }, 1200);
+      // The whole name or a whole row is done: a bigger celebration, then back to the choice screen.
+      setTimeout(function () { if (mine === token) { gain(2, T.balloons); earnStamp('trace', T.balloons); } }, 1200);
       setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 1200);
       setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 2400);
       advanceTimer = setTimeout(function () {
@@ -529,6 +577,11 @@
       return;
     }
     var nextPos = (state.pos + 1) % list.length, cat = state.cat;
+    if (cat !== 'name') {
+      // Inside the current row: carry on with the letters of that row that are not done yet.
+      var nx = walkNext(cat0, state.pos), rg = walkRange(cat0);
+      if (nx >= 0 && state.pos >= rg.from && state.pos < rg.to) nextPos = nx;
+    }
     // Now and then, instead of the next letter in the row, one that needs extra practice.
     if (cat !== 'name' && store.get().settings.adaptive && Math.random() < 0.34) {
       var prof = store.get().profiles[state.profile];
@@ -540,6 +593,8 @@
       openTrace(cat, nextPos);
     }, 3800);
   }
+
+  LC.testTraceSuccess = function () { if (tracer) success(state.glyph, token); };
 
   function burst(container) {
     container = container || T.balloons;
@@ -687,7 +742,7 @@
     for (var i = 0; i < ROUNDS; i++) F.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     audio.chime(); burst(F.balloons);
-    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); if (F.first >= 4) awardTicket(F.balloons); } }, 1200);
+    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); if (F.first >= 4) earnStamp('find', F.balloons); } }, 1200);
     F.timer = setTimeout(function () {
       if (gen !== F.gen) return;
       leaveFind(); buildMenu(); show('menu');
@@ -898,7 +953,7 @@
     Array.prototype.forEach.call(G.sky.children, function (b, i) {
       setTimeout(function () { if (gen === G.gen && b.parentNode) { sparks(b); audio.pop(); b.parentNode.removeChild(b); } }, 200 + i * 250);
     });
-    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); if (G.firstTry >= 4) awardTicket(G.fx); } }, 400);
+    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); if (G.firstTry >= 4) earnStamp('pop', G.fx); } }, 400);
     G.timer = setTimeout(function () {
       if (gen !== G.gen) return;
       leavePop(); buildMenu(); show('menu');
@@ -1039,7 +1094,7 @@
     for (var i = 0; i < ROUNDS; i++) C.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     audio.chime(); burst(C.fx);
-    setTimeout(function () { if (gen === C.gen) { audio.chime(); burst(C.fx); gain(bonus, C.fx); if (C.firstTry >= 4) awardTicket(C.fx); } }, 1200);
+    setTimeout(function () { if (gen === C.gen) { audio.chime(); burst(C.fx); gain(bonus, C.fx); if (C.firstTry >= 4) earnStamp('count', C.fx); } }, 1200);
     C.timer = setTimeout(function () {
       if (gen !== C.gen) return;
       leaveCount(); buildGames(); show('games');
@@ -1329,7 +1384,7 @@
     for (var i = 0; i < ROUNDS; i++) M.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     audio.chime(); burst(M.fx);
-    setTimeout(function () { if (gen === M.gen) { audio.chime(); burst(M.fx); gain(bonus, M.fx); if (M.firstTry >= 4) awardTicket(M.fx); } }, 1200);
+    setTimeout(function () { if (gen === M.gen) { audio.chime(); burst(M.fx); gain(bonus, M.fx); if (M.firstTry >= 4) earnStamp('math', M.fx); } }, 1200);
     M.timer = setTimeout(function () {
       if (gen !== M.gen) return;
       leaveMath(); buildGames(); show('games');

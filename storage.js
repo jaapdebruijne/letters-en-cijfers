@@ -4,10 +4,11 @@
   var KEY = 'lcl.v1';
   var PROFILES = ['pinky', 'groentje'];
   var SLOTS = ['head', 'face', 'body', 'car'];
+  var GAMES = ['trace', 'find', 'pop', 'count', 'math'];
   var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
+    return { name: '', done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
   }
 
   function fresh() {
@@ -48,6 +49,17 @@
           if (p.mathMax === 10) out.mathMax = 10;
           if (isFinite(p.stars)) out.stars = Math.max(0, Math.min(99999, Math.floor(p.stars)));
           if (isFinite(p.tickets)) out.tickets = Math.max(0, Math.min(99, Math.floor(p.tickets)));
+          // stamp card (a bonus ride needs stamps from 3 different games) and where the child is in each row
+          if (Array.isArray(p.stamps)) {
+            p.stamps.forEach(function (g) { if (GAMES.indexOf(g) >= 0 && out.stamps.indexOf(g) < 0 && out.stamps.length < 2) out.stamps.push(g); });
+          }
+          if (p.walk && typeof p.walk === 'object') {
+            ['upper', 'lower', 'digit'].forEach(function (c) {
+              var w = p.walk[c];
+              if (!w || !isFinite(w.b) || !Array.isArray(w.s)) return;
+              out.walk[c] = { b: Math.max(0, Math.min(9, Math.floor(w.b))), s: w.s.filter(function (k, i) { return LC.GLYPHS[k] && LC.categoryOf(k) === c && w.s.indexOf(k) === i; }).slice(0, 7) };
+            });
+          }
           if (Array.isArray(p.owned)) {
             p.owned.forEach(function (id) {
               if (LC.shopItem(id) && out.owned.indexOf(id) < 0) out.owned.push(id);
@@ -136,6 +148,18 @@
       p.tickets = Math.min(99, p.tickets + 1);
       save();
     },
+    stamps: function (profile) { return get().profiles[profile].stamps; },
+    // One stamp per game; the third different game turns the card into a bonus ride.
+    // Returns 'have' (this game already has one), 'new' or 'ticket'.
+    addStamp: function (profile, game) {
+      var p = get().profiles[profile];
+      if (GAMES.indexOf(game) < 0 || p.stamps.indexOf(game) >= 0) return 'have';
+      p.stamps.push(game);
+      var r = 'new';
+      if (p.stamps.length >= 3) { p.stamps = []; p.tickets = Math.min(99, p.tickets + 1); r = 'ticket'; }
+      save();
+      return r;
+    },
     useTicket: function (profile) {
       var p = get().profiles[profile];
       if (p.tickets < 1) return false;
@@ -162,7 +186,7 @@
     resetProgress: function () {
       PROFILES.forEach(function (k) {
         var p = get().profiles[k];
-        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
+        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
       });
       save();
     }
