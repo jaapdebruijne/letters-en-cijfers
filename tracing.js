@@ -63,7 +63,7 @@
 
     var marker = mk('circle', { r: 11, stroke: g.color }, 'marker');
     var ghost = mk('circle', { r: 14, stroke: g.color, visibility: 'hidden' }, 'ghost');
-    top.appendChild(catArm); top.appendChild(marker); top.appendChild(ghost);
+    top.appendChild(marker); top.appendChild(ghost); top.appendChild(catArm);
 
     var active = null, last = null, cur = null, curD = '', inkLen = 0;
     var inkCells = {};
