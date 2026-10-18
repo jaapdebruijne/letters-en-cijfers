@@ -22,7 +22,7 @@
 
   LC.Tracer = function (host, key, strictKey, cb) {
     var g = LC.GLYPHS[key], cfg = STRICT[strictKey] || STRICT.normaal;
-    var svg = mk('svg', { viewBox: g.view.join(' ') }, 'board-svg');
+    var svg = mk('svg', { viewBox: g.view.join(' '), overflow: 'visible' }, 'board-svg');
     var wide = mk('g'), dots = mk('g'), ink = mk('g'), top = mk('g');
     svg.appendChild(wide); svg.appendChild(dots); svg.appendChild(ink); svg.appendChild(top);
     host.appendChild(svg);
@@ -41,9 +41,29 @@
       return { pts: pts, next: 0, cover: cover, done: false };
     });
 
+    // Cat arm: paw follows the ghost cursor during demo
+    var ARM_COL = '#ffb3c8', ARM_COL2 = '#ff97b8';
+    var ARM_AX = g.view[0] - 40, ARM_AY = g.view[1] + g.view[3] * 0.72;
+    var armLine = mk('line', { x1: ARM_AX, y1: ARM_AY, x2: ARM_AX, y2: ARM_AY, stroke: ARM_COL, 'stroke-width': '20', 'stroke-linecap': 'round' });
+    var armPaw  = mk('circle', { cx: ARM_AX, cy: ARM_AY, r: '11', fill: ARM_COL });
+    var armT1   = mk('circle', { cx: ARM_AX - 7, cy: ARM_AY - 11, r: '5', fill: ARM_COL2 });
+    var armT2   = mk('circle', { cx: ARM_AX,     cy: ARM_AY - 14, r: '5', fill: ARM_COL2 });
+    var armT3   = mk('circle', { cx: ARM_AX + 7, cy: ARM_AY - 11, r: '5', fill: ARM_COL2 });
+    var catArm  = mk('g', { visibility: 'hidden' });
+    catArm.appendChild(armLine); catArm.appendChild(armPaw);
+    catArm.appendChild(armT1); catArm.appendChild(armT2); catArm.appendChild(armT3);
+
+    function moveArm(x, y) {
+      armLine.setAttribute('x2', x); armLine.setAttribute('y2', y);
+      armPaw.setAttribute('cx', x); armPaw.setAttribute('cy', y);
+      armT1.setAttribute('cx', x - 7);  armT1.setAttribute('cy', y - 11);
+      armT2.setAttribute('cx', x);      armT2.setAttribute('cy', y - 14);
+      armT3.setAttribute('cx', x + 7);  armT3.setAttribute('cy', y - 11);
+    }
+
     var marker = mk('circle', { r: 11, stroke: g.color }, 'marker');
     var ghost = mk('circle', { r: 14, stroke: g.color, visibility: 'hidden' }, 'ghost');
-    top.appendChild(marker); top.appendChild(ghost);
+    top.appendChild(catArm); top.appendChild(marker); top.appendChild(ghost);
 
     var active = null, last = null, cur = null, curD = '', inkLen = 0;
     var inkCells = {};
@@ -201,11 +221,13 @@
       }
       var idx = 0, start = performance.now();
       ghost.setAttribute('visibility', 'visible');
+      catArm.setAttribute('visibility', 'visible');
       function frame(now) {
         if (dead) return;
         var s = seq[idx], dur = s.len / 0.08, el = now - start, f = Math.min(el, dur) / dur;
         var q = s.p.getPointAtLength(s.len * f);
         ghost.setAttribute('cx', q.x); ghost.setAttribute('cy', q.y);
+        moveArm(q.x, q.y);
         s.trail.setAttribute('stroke-dashoffset', s.len * (1 - f));
         if (el > dur + 450) {
           if (s.lastOfPass) {
@@ -214,6 +236,7 @@
           idx++; start = now;
           if (idx >= seq.length) {
             ghost.setAttribute('visibility', 'hidden');
+            catArm.setAttribute('visibility', 'hidden');
             setTimeout(function () { if (!dead) clearInk(); }, 500);
             demoing = false; locked = false; placeMarker();
             if (cb.onHelpDone) cb.onHelpDone();

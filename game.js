@@ -764,8 +764,20 @@
       onHelp: function () { setMood('help'); audio.voiceHelp(); },
       onHelpDone: function () { setMood('idle'); }
     });
-    setTimeout(function () { if (mine === token) audio.voiceLetter(LC.GLYPHS[key].sound); }, 350);
-    setTimeout(function () { if (mine === token) showHow(); }, 1100);
+    // Fonetische klank → "Doe mij maar na" → armpje demo
+    setTimeout(function () {
+      if (mine !== token) return;
+      audio.speakPhonetic(key.toLowerCase()).then(function () {
+        if (mine !== token) return;
+        setTimeout(function () {
+          if (mine !== token) return;
+          audio.voiceDemoIntro().then(function () {
+            if (mine !== token) return;
+            showHow();
+          });
+        }, 200);
+      });
+    }, 350);
   }
 
   function showHow() {

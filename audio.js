@@ -138,8 +138,44 @@
     return clips[path];
   }
 
+  // TTS (Web Speech API) for phonetic sounds; cancels when stopVoice is called.
+  var ttsSeq = 0;
+  function tts(text) {
+    var synth = window.speechSynthesis;
+    if (!synth) return Promise.resolve();
+    synth.cancel();
+    var mine = ++ttsSeq;
+    return new Promise(function (resolve) {
+      var done = false, spoke = false;
+      function finish() { if (!done) { done = true; resolve(); } }
+      var utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'nl-NL'; utt.rate = 0.9; utt.pitch = 1.0;
+      utt.onend = finish; utt.onerror = finish;
+      function doSpeak() {
+        if (spoke || mine !== ttsSeq) { finish(); return; }
+        spoke = true;
+        var vs = synth.getVoices();
+        var nl = vs.find(function (v) { return v.lang && v.lang.startsWith('nl'); });
+        if (nl) utt.voice = nl;
+        synth.speak(utt);
+      }
+      if (synth.getVoices().length) doSpeak();
+      else { synth.onvoiceschanged = doSpeak; setTimeout(doSpeak, 300); }
+    });
+  }
+
+  var PHONETICS = {
+    a: 'aaa', b: 'b', c: 'k', d: 'd', e: 'eee', f: 'fff',
+    g: 'ggg', h: 'hhh', i: 'iii', j: 'j', k: 'k', l: 'lll',
+    m: 'mmm', n: 'nnn', o: 'ooo', p: 'p', q: 'kw', r: 'rrr',
+    s: 'sss', t: 't', u: 'uuu', v: 'vvv', w: 'ww', x: 'ks',
+    y: 'ij', z: 'zzz'
+  };
+
   function stopVoice() {
     seq++;
+    ttsSeq++;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (curVoice) { try { curVoice.pause(); } catch (e) { /* ignore */ } curVoice = null; }
   }
 
@@ -191,6 +227,18 @@
     voiceMath: function (type) { return playVoice('audio/phrases/' + (type === 'meer' ? 'meer' : 'erbij') + '.mp3'); },
     voiceSwitch: function () { return playVoice('audio/phrases/wissel.mp3'); },
     voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
+    // Phonetic letter sound (klankzuiver) via TTS; falls back to mp3 if available.
+    speakPhonetic: function (letter) {
+      var lk = letter.toLowerCase();
+      return tts(PHONETICS[lk] || lk);
+    },
+    // "Doe mij maar na": plays mp3 if recorded, otherwise TTS.
+    voiceDemoIntro: function () {
+      return playVoice('audio/phrases/doe-mij-maar-na.mp3').then(function (heard) {
+        if (heard) return;
+        return tts('Doe mij maar na');
+      });
+    },
     // A rising note for each thing that is counted (1 = low, 9 = high).
     note: function (i) {
       if (!ensure()) return;
