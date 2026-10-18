@@ -147,9 +147,10 @@
     var mine = ++ttsSeq;
     return new Promise(function (resolve) {
       var done = false, spoke = false;
-      function finish() { if (!done) { done = true; resolve(); } }
+      function finish() { if (!done) { done = true; if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false); resolve(); } }
       var utt = new SpeechSynthesisUtterance(text);
       utt.lang = 'nl-NL'; utt.rate = 0.9; utt.pitch = 1.0;
+      utt.onstart = function () { if (mine === ttsSeq && LC.audio.onTalkingChange) LC.audio.onTalkingChange(true); };
       utt.onend = finish; utt.onerror = finish;
       function doSpeak() {
         if (spoke || mine !== ttsSeq) { finish(); return; }
@@ -177,6 +178,7 @@
     ttsSeq++;
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (curVoice) { try { curVoice.pause(); } catch (e) { /* ignore */ } curVoice = null; }
+    if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false);
   }
 
   // Resolves true when a recording exists for this clip (so the game knows if it is silent).
@@ -188,6 +190,9 @@
       if (mine !== seq) return true;
       var a = new Audio(u);
       curVoice = a;
+      a.addEventListener('playing', function () { if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(true); });
+      a.addEventListener('ended', function () { if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false); });
+      a.addEventListener('error', function () { if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false); });
       var p = a.play();
       if (p && p.catch) p.catch(function () { /* silent if blocked */ });
       return true;
@@ -197,6 +202,7 @@
   function pick(n) { return 1 + Math.floor(Math.random() * n); }
 
   LC.audio = {
+    onTalkingChange: null,
     unlock: function () { ensure(); loadUserEngine(); },
     setMusic: function (on) { wantMusic = on; if (on) startMusic(); else stopMusic(); },
     stopVoice: stopVoice,

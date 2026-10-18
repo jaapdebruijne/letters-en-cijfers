@@ -20,6 +20,9 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .cat.happy { animation: hop 0.55s ease-out 3; }
 .cat.oops .head-g { transform-origin: 150px 210px; animation: tilt 1.1s ease-in-out 1; }
 .cat.help .head-g { transform-origin: 150px 210px; animation: nod 1s ease-in-out 3; }
+.cat.talking .mouth-smile { display: none; }
+.cat.talking .mouth-happy { display: inline; transform-box: fill-box; transform-origin: 50% 0%; animation: mond-open 0.22s ease-in-out infinite alternate; }
+@keyframes mond-open { from { transform: scaleY(0.05); } to { transform: scaleY(0.5); } }
 .cat.sleep .kat-staart, .cat.sleep .kat-staartpunt { animation: none; }
 /* waving: the class zwaait is added for 2.7 s (shoulder, then elbow, then the paw pads show) */
 .cat .kat-bovenarm { transform-box: fill-box; transform-origin: 50% 4%; }

@@ -740,6 +740,11 @@
     if (m === 'oops') moodTimer = setTimeout(function () { setMood('idle'); }, 1300);
   }
 
+  audio.onTalkingChange = function (on) {
+    var c = current === 'find' ? F.cat : current === 'pop' ? G.cat : current === 'count' ? C.cat : current === 'math' ? M.cat : T.cat;
+    if (c) c.classList.toggle('talking', on);
+  };
+
   function leaveTrace() {
     clearTimeout(advanceTimer); token++;
     audio.stopVoice();
