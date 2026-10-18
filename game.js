@@ -152,7 +152,7 @@
   var ringEl = null, ringArc = null, RING_LEN = 2 * Math.PI * 40;
   function updateRing() {
     var min = store.get().settings.turnMin;
-    var on = state.profile && min && !turn.due && current !== 'profile' && current !== 'switch' && current !== 'bye';
+    var on = state.profile && min && !turn.due && store.getPlayers() > 1 && current !== 'profile' && current !== 'switch' && current !== 'bye';
     if (!on) { if (ringEl) ringEl.classList.add('off'); return; }
     if (!ringEl) {
       ringEl = h('div', 'turnring', '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" fill="none" stroke="#ece4f7" stroke-width="14"/>' +
@@ -196,7 +196,7 @@
     if (!state.profile || modal || document.hidden || current === 'profile' || current === 'switch' || current === 'bye') return;
     store.addTime(state.profile, dt / 1000);
     var min = store.get().settings.turnMin;
-    if (!min) return;
+    if (!min || store.getPlayers() < 2) return;
     if (!turn.due) {
       turn.ms += dt;
       if (turn.ms >= min * 60000) { turn.due = true; showTimeup(); }
@@ -448,8 +448,6 @@
     var mc = h('div', 'games-cat', catFor(key, {}));
     var playerName = store.get().profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
     var nm = h('div', 'pname'); nm.textContent = playerName; mc.appendChild(nm);
-    var kid = store.get().profiles[key].name;
-    if (kid) { var kn = h('div', 'kname'); kn.textContent = kid; mc.appendChild(kn); }
     s.appendChild(mc);
 
     var pill = h('div', 'starpill');
@@ -612,7 +610,6 @@
 
     var mc = h('div', 'menu-cat', catFor(key, {}));
     var nm = h('div', 'pname'); nm.textContent = prof.name || (key === 'speler1' ? 'Speler 1' : 'Speler 2'); mc.appendChild(nm);
-    if (prof.name) { var kn = h('div', 'kname'); kn.textContent = prof.name; mc.appendChild(kn); }
     s.appendChild(mc);
 
     var letters = nameLetters(key);
