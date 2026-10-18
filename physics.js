@@ -7,8 +7,13 @@
   // and a bad landing can flip it. y points down, angles turn clockwise.
   var P = LC.carTune = {
     G: 600,           // gravity (lowish, like the moon: long, floaty jumps)
-    L0: 24, LMIN: 0, LMAX: 38,   // spring leg: rest, shortest, longest (more travel = softer hits)
-    K: 50, B: 9,      // spring and damper per wheel
+    SUBSTEPS: 6,      // physics steps per frame: smaller steps keep the springs stable
+    L0: 24, LMAX: 42, // spring leg: rest length and longest length (how far a wheel hangs in the air)
+    MAX_COMPRESSION: 4,   // hard limit: a leg can never be pushed in further than this from rest
+    WHEEL_TOP_MIN: -22,   // anti-penetration: the top of a wheel never gets higher than this above the car's middle
+    K: 85, B: 12,     // spring and damper per wheel (stiff enough not to sink deeply)
+    REBOUND: 0.4,     // damping while a leg springs back out (lower = back to normal faster)
+    LENDOT_MAX: 900,  // fastest a leg may move for damping, so one hard landing cannot blow up the spring
     FMAX: 2600,       // strongest push a spring leg can give
     E: 0.08,          // how much a hard landing bounces (0 = dead, 1 = rubber)
     MU: 1.4,          // grip from the weight on a wheel
@@ -16,7 +21,7 @@
     DRIVE: 480,       // engine push per wheel
     BRK: 700,         // brake push per wheel
     ROLL: 0.18,       // rolling resistance
-    TARM: 56,         // height below the middle where the wheel forces act (more = more lean)
+    TARM: 70,         // height below the middle where the wheel forces act (more = more lean)
     AIRT: 2.6,        // turning the car in the air with gas and brake
     W0: 2.2, Z: 0.6,  // how strongly the car levels itself in the air
     ADAMP: 0.5,       // calming of spinning in the air
@@ -29,7 +34,11 @@
   LC.carPhysics = function (def, ground, opts) {
     opts = opts || {};
     var wheels = def.wheels.map(function (w) {
-      return { x: w.x, r: w.r, ay: 28 - w.r - P.L0, len: P.L0, rot: 0, contact: false, cx: 0, cy: 0, vt: 0 };
+      var ay = 28 - w.r - P.L0;   // where the leg hangs from the car (up/down, car's own frame)
+      // Shortest the leg may get: not more than MAX_COMPRESSION, and the wheel top must stay
+      // below WHEEL_TOP_MIN. This is what keeps wheels from rising through the body.
+      var lmin = Math.max(P.L0 - P.MAX_COMPRESSION, P.WHEEL_TOP_MIN + w.r - ay);
+      return { x: w.x, r: w.r, ay: ay, lmin: lmin, len: P.L0, rot: 0, contact: false, cx: 0, cy: 0, vt: 0 };
     });
     var len = def.vb[2], I = P.IFACT * len * len * (def.stats.i || 1);
     var vmax = P.VMAX * def.stats.v, drive = P.DRIVE * def.stats.a;
@@ -73,7 +82,7 @@
         }
 
         if (!inContact) {
-          wh.len += (P.LMAX - wh.len) * Math.min(1, dt * 12);
+          wh.len += (P.LMAX - wh.len) * Math.min(1, dt * 30);
           wh.contact = false;
           wh.cx = Ax + ux * wh.len; wh.cy = Ay + uy * wh.len;
           wh.rot += wh.vt / wh.r * dt;
@@ -81,14 +90,14 @@
         }
         contacts++;
         wh.contact = true;
-        var clamped = Math.min(Math.max(L, P.LMIN), P.LMAX);
-        var lenDot = (clamped - wh.len) / dt;
-        var Fn = P.K * (P.L0 - clamped) - P.B * lenDot;
+        var clamped = Math.min(Math.max(L, wh.lmin), P.LMAX);
+        var lenDot = Math.max(-P.LENDOT_MAX, Math.min(P.LENDOT_MAX, (clamped - wh.len) / dt));
+        var Fn = P.K * (P.L0 - clamped) - P.B * (lenDot > 0 ? P.REBOUND : 1) * lenDot;
         if (Fn < 0) Fn = 0; else if (Fn > P.FMAX) Fn = P.FMAX;
-        if (L < P.LMIN) {
+        if (L < wh.lmin) {
           // a fully pushed-in leg means the wheel hit the ground hard: bounce off the slope itself
           var wx = Ax + ux * clamped, sl = ground(wx + 3) - ground(wx - 3), nl = Math.sqrt(36 + sl * sl);
-          hits.push({ x: wx, y: ground(wx), nx: sl / nl, ny: -6 / nl, pen: (P.LMIN - L) * 0.8 });
+          hits.push({ x: wx, y: ground(wx), nx: sl / nl, ny: -6 / nl, pen: (wh.lmin - L) * 0.8 });
         }
         wh.len = clamped;
         wh.cx = Ax + ux * clamped; wh.cy = Ay + uy * clamped;
@@ -153,9 +162,13 @@
       s: s,
       step: function (dt, gas, brake) {
         if (s.crashed) { gas = false; brake = false; }
-        var n = Math.ceil(dt / (1 / 180)), h = dt / n;
+        var n = P.SUBSTEPS, h = dt / n;
         for (var k = 0; k < n; k++) substep(h, gas, brake);
         var c = Math.cos(s.a), sn = Math.sin(s.a);
+        // draw positions: put the wheels on the car as it ends this frame (no lag after a hard hit)
+        wheels.forEach(function (wh) {
+          wh.cx = s.x + wh.x * c - (wh.ay + wh.len) * sn; wh.cy = s.y + wh.x * sn + (wh.ay + wh.len) * c;
+        });
         s.headX = s.x + hx * c - hy * sn; s.headY = s.y + hx * sn + hy * c;
         if (!s.crashed && s.t > 1.2 && s.headY > ground(s.headX) - 12) s.crashed = true;
         return s;
