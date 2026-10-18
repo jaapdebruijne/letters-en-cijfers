@@ -8,7 +8,7 @@
   var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '' };
+    return { name: '', age: 0, done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '' };
   }
 
   function fresh() {
@@ -72,6 +72,7 @@
             });
           }
           if (typeof p.fur === 'string' && LC.CATS && LC.CATS[p.fur]) out.fur = p.fur;
+          if (isFinite(p.age) && p.age >= 2 && p.age <= 12) out.age = Math.floor(p.age);
         });
         var s = raw.settings || {};
         if (['soepel', 'normaal', 'streng'].indexOf(s.strict) >= 0) d.settings.strict = s.strict;
@@ -187,6 +188,8 @@
     },
     getFur: function (profile) { return get().profiles[profile].fur || 'roze'; },
     setFur: function (profile, furKey) { get().profiles[profile].fur = furKey; save(); },
+    getAge: function (profile) { return get().profiles[profile].age || 0; },
+    setAge: function (profile, age) { get().profiles[profile].age = age; save(); },
     getPlayers: function () { return get().settings.players || 1; },
     setPlayers: function (n) { get().settings.players = n; save(); },
     resetProgress: function () {

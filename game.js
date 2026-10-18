@@ -295,37 +295,53 @@
   }
 
   // First-time (and settings-accessible) color + player count setup screen.
+  // Layout: "Hoeveel spelers?" with big cards at top, then color grid below for each player.
   function buildColorPicker() {
     var s = scr.profile;
     s.textContent = '';
 
-    var d = store.get();
     var furKeys = ['roze', 'groen', 'blauw', 'geel', 'oranje', 'paars'];
     var players = store.getPlayers();
 
-    // Player count toggle at the top
-    var ptoggle = h('div', 'ptoggle');
-    var p1btn = h('button', 'ptogbtn' + (players === 1 ? ' on' : ''), '1 speler');
-    var p2btn = h('button', 'ptogbtn' + (players === 2 ? ' on' : ''), '2 spelers');
-    p1btn.addEventListener('click', function () { store.setPlayers(1); buildColorPicker(); });
-    p2btn.addEventListener('click', function () { store.setPlayers(2); buildColorPicker(); });
-    ptoggle.appendChild(p1btn); ptoggle.appendChild(p2btn);
-    s.appendChild(ptoggle);
+    // --- Section 1: How many players? ---
+    var playerSec = h('div', 'cp-playersec');
+    var playerLbl = h('div', 'cp-seclbl'); playerLbl.textContent = 'Hoeveel spelers?';
+    playerSec.appendChild(playerLbl);
+    var playerCards = h('div', 'cp-playercards');
+    [1, 2].forEach(function (n) {
+      var card = h('button', 'cp-playercard' + (n === players ? ' on' : ''));
+      var icon = h('div', 'cp-playericon');
+      // Show 1 or 2 poes icons
+      for (var i = 0; i < n; i++) {
+        var pk = i === 0 ? 'speler1' : 'speler2';
+        icon.innerHTML += LC.catSVG(store.getFur(pk) || 'roze', { head: true, cls: 'idle' });
+      }
+      card.appendChild(icon);
+      var lbl = h('div', 'cp-playerlbl'); lbl.textContent = n + (n === 1 ? ' speler' : ' spelers'); card.appendChild(lbl);
+      card.addEventListener('click', function () { store.setPlayers(n); buildColorPicker(); });
+      playerCards.appendChild(card);
+    });
+    playerSec.appendChild(playerCards);
+    s.appendChild(playerSec);
 
+    // --- Section 2: Color choice per player ---
     var profileKeys = players === 1 ? ['speler1'] : ['speler1', 'speler2'];
-
     profileKeys.forEach(function (profileKey) {
-      var sec = h('div', 'colorsec');
-      var lbl = h('div', 'colorlbl');
-      lbl.textContent = profileKey === 'speler1' ? (players === 1 ? 'Kies je poes' : 'Speler 1') : 'Speler 2';
-      sec.appendChild(lbl);
+      var sec = h('div', 'cp-colorsec');
+      if (players === 2) {
+        var lbl = h('div', 'cp-seclbl');
+        lbl.textContent = profileKey === 'speler1' ? 'Speler 1: kies je poes' : 'Speler 2: kies je poes';
+        sec.appendChild(lbl);
+      } else {
+        var lbl2 = h('div', 'cp-seclbl'); lbl2.textContent = 'Kies je poes'; sec.appendChild(lbl2);
+      }
 
-      var grid = h('div', 'colorgrid');
+      var grid = h('div', 'cp-colorgrid');
       furKeys.forEach(function (fur) {
         var curFur = store.getFur(profileKey) || 'roze';
-        var btn = h('button', 'coloropt' + (fur === curFur ? ' on' : ''),
+        var btn = h('button', 'cp-coloropt' + (fur === curFur ? ' on' : ''),
           LC.catSVG(fur, { head: true, cls: 'idle' }));
-        var lname = h('span', 'colname'); lname.textContent = LC.CATS[fur].name; btn.appendChild(lname);
+        var lname = h('span', 'cp-colname'); lname.textContent = LC.CATS[fur].name; btn.appendChild(lname);
         btn.addEventListener('click', function () { store.setFur(profileKey, fur); buildColorPicker(); });
         grid.appendChild(btn);
       });
@@ -333,14 +349,70 @@
       s.appendChild(sec);
     });
 
-    var done = h('button', 'btn primary bigbtn');
-    done.textContent = 'Klaar!';
+    // --- Done button ---
+    var done = h('button', 'btn primary cp-done');
+    done.textContent = 'Klaar! →';
     done.addEventListener('click', function () {
-      // Ensure each active player has a fur color chosen (default to roze).
       var activeKeys = store.getPlayers() === 1 ? ['speler1'] : ['speler1', 'speler2'];
       activeKeys.forEach(function (pk) { if (!store.get().profiles[pk].fur) store.setFur(pk, 'roze'); });
-      buildProfile(); show('profile');
+      buildNameScreen(); show('profile');
     });
+    s.appendChild(done);
+  }
+
+  // Screen to enter name and age for each active player, shown after color picker.
+  function buildNameScreen() {
+    var s = scr.profile;
+    s.textContent = '';
+
+    var players = store.getPlayers();
+    var profileKeys = players === 1 ? ['speler1'] : ['speler1', 'speler2'];
+
+    var wrap = h('div', 'ns-wrap');
+    var title = h('div', 'ns-title'); title.textContent = 'Hoe heet je?'; wrap.appendChild(title);
+
+    profileKeys.forEach(function (profileKey) {
+      var card = h('div', 'ns-card');
+
+      var catEl = h('div', 'ns-cat', catFor(profileKey, { cls: 'idle' }));
+      card.appendChild(catEl);
+
+      var fields = h('div', 'ns-fields');
+
+      // Name input
+      var nameRow = h('div', 'ns-row');
+      var nameLbl = h('label', 'ns-lbl'); nameLbl.textContent = players === 2 ? (profileKey === 'speler1' ? 'Naam speler 1' : 'Naam speler 2') : 'Jouw naam';
+      var nameInp = h('input');
+      nameInp.type = 'text'; nameInp.maxLength = 20; nameInp.autocomplete = 'off';
+      nameInp.placeholder = players === 2 ? (profileKey === 'speler1' ? 'Speler 1' : 'Speler 2') : 'Naam...';
+      nameInp.value = store.get().profiles[profileKey].name;
+      nameInp.addEventListener('input', function () { store.get().profiles[profileKey].name = nameInp.value.slice(0, 20); store.save(); });
+      nameRow.appendChild(nameLbl); nameRow.appendChild(nameInp);
+      fields.appendChild(nameRow);
+
+      // Age picker (big buttons for ages 3-8, plus younger/older)
+      var ageRow = h('div', 'ns-row');
+      var ageLbl = h('label', 'ns-lbl'); ageLbl.textContent = 'Leeftijd';
+      ageRow.appendChild(ageLbl);
+      var agePicker = h('div', 'ns-agepicker');
+      var curAge = store.getAge(profileKey);
+      [3, 4, 5, 6, 7, 8].forEach(function (age) {
+        var ab = h('button', 'ns-agebtn' + (curAge === age ? ' on' : '')); ab.textContent = age;
+        ab.addEventListener('click', function () { store.setAge(profileKey, age); buildNameScreen(); });
+        agePicker.appendChild(ab);
+      });
+      ageRow.appendChild(agePicker);
+      fields.appendChild(ageRow);
+
+      card.appendChild(fields);
+      wrap.appendChild(card);
+    });
+
+    s.appendChild(wrap);
+
+    var done = h('button', 'btn primary cp-done');
+    done.textContent = 'Spelen! →';
+    done.addEventListener('click', function () { buildProfile(); show('profile'); });
     s.appendChild(done);
   }
 
@@ -443,7 +515,8 @@
       var equipped = it.slot === 'fur' ? curFur === it.fur : (!!it.slot && st.avatar[it.slot] === it.id);
       var preview;
       if (shopTab === 'kleuren') {
-        preview = LC.catSVG(it.fur, { head: true, cls: 'idle' });
+        var furCls = it.fur === 'regenboog' ? 'idle regenboog' : 'idle';
+        preview = LC.catSVG(it.fur, { head: true, cls: furCls });
       } else if (shopTab === 'avatar') {
         preview = LC.accessoryPreview(key, it.id);
       } else if (shopTab === 'car') {
