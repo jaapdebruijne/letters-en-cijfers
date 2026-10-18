@@ -596,42 +596,65 @@
   // The doll house room that sits behind every screen.
   LC.sceneSVG = function () {
     var flags = '';
-    var cols = ['#ffc8dd', '#bde0fe', '#fff1a8', '#c7f0d2', '#e4c9f5'];
-    for (var i = 0; i < 14; i++) {
-      var x = 20 + i * 92;
-      var y = 24 + Math.sin(i / 13 * Math.PI) * 26;
-      flags += '<path d="M ' + x + ' ' + y + ' L ' + (x + 46) + ' ' + y + ' L ' + (x + 23) + ' ' + (y + 40) + ' Z" fill="' + cols[i % cols.length] + '"/>';
+    var cols = ['#ff6b9d', '#4dc9f0', '#ffd23f', '#7bdf90', '#b888f5'];
+    for (var i = 0; i < 15; i++) {
+      var x = 14 + i * 88;
+      var y = 20 + Math.sin(i / 14 * Math.PI) * 30;
+      flags += '<path d="M ' + x + ' ' + y + ' L ' + (x + 54) + ' ' + y + ' L ' + (x + 27) + ' ' + (y + 48) + ' Z" fill="' + cols[i % cols.length] + '" opacity="0.88"/>';
     }
     var planks = '';
-    for (var j = 1; j < 9; j++) planks += '<path d="M ' + (j * 160) + ' 644 L ' + (j * 160 - 30 + (j - 4) * -10) + ' 800" stroke="#f8d6bc" stroke-width="3"/>';
+    for (var j = 1; j < 9; j++) planks += '<path d="M ' + (j * 160) + ' 648 L ' + (j * 160 - 30 + (j - 4) * -10) + ' 800" stroke="#c0883a" stroke-width="2.5"/>';
     return '' +
       '<svg class="scene" viewBox="0 0 1280 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<defs><pattern id="wp" width="64" height="64" patternUnits="userSpaceOnUse"><circle cx="16" cy="16" r="5" fill="#eed9f5"/><circle cx="48" cy="48" r="5" fill="#eed9f5"/></pattern></defs>' +
-      '<rect width="1280" height="640" fill="#f7ebfb"/><rect width="1280" height="640" fill="url(#wp)"/>' +
-      '<path d="M 0 30 Q 640 90 1280 30" stroke="#d9c3ea" stroke-width="3" fill="none"/>' +
+      '<defs>' +
+      '<linearGradient id="sky-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#78b8e8"/><stop offset="1" stop-color="#c0e0f8"/></linearGradient>' +
+      '<pattern id="wp" width="64" height="64" patternUnits="userSpaceOnUse"><circle cx="16" cy="16" r="5" fill="#ffffff" opacity="0.38"/><circle cx="48" cy="48" r="5" fill="#ffffff" opacity="0.38"/></pattern>' +
+      '</defs>' +
+      // wall: sky gradient + polka dots
+      '<rect width="1280" height="650" fill="url(#sky-g)"/><rect width="1280" height="650" fill="url(#wp)"/>' +
+      // bunting string
+      '<path d="M 0 22 Q 640 82 1280 22" stroke="#b0c8e0" stroke-width="2.5" fill="none"/>' +
       flags +
-      '<rect y="620" width="1280" height="26" fill="#ffffff"/>' +
-      '<rect y="646" width="1280" height="154" fill="#fde7d4"/>' + planks +
-      '<ellipse cx="640" cy="738" rx="440" ry="52" fill="#e6f5ec"/><ellipse cx="640" cy="738" rx="380" ry="40" fill="#f1fbf4"/>' +
-      // window
-      '<rect x="1000" y="120" width="200" height="250" rx="14" fill="#ffffff"/>' +
-      '<rect x="1014" y="134" width="172" height="222" rx="8" fill="#d9f0ff"/>' +
-      '<circle cx="1120" cy="190" r="26" fill="#fff3b0"/>' +
-      '<ellipse cx="1060" cy="260" rx="34" ry="14" fill="#ffffff"/><ellipse cx="1082" cy="250" rx="24" ry="14" fill="#ffffff"/>' +
-      '<path d="M 1100 134 L 1100 356 M 1014 245 L 1186 245" stroke="#ffffff" stroke-width="8"/>' +
-      '<path d="M 990 112 L 1070 112 Q 1052 240 1076 366 L 990 366 Z" fill="#f9c6da"/>' +
-      '<path d="M 1210 112 L 1130 112 Q 1148 240 1124 366 L 1210 366 Z" fill="#f9c6da"/>' +
-      '<rect x="975" y="102" width="250" height="12" rx="6" fill="#d9a7bd"/>' +
-      // pictures
-      '<rect x="130" y="130" width="150" height="112" rx="10" fill="#ffffff"/><rect x="142" y="142" width="126" height="88" rx="6" fill="#ffe6f0"/>' +
-      '<path d="M 205 205 C 160 175 170 150 190 156 C 198 158 205 166 205 166 C 205 166 212 158 220 156 C 240 150 250 175 205 205 Z" fill="#f7a6c4"/>' +
-      '<rect x="320" y="160" width="104" height="104" rx="10" fill="#ffffff"/><rect x="332" y="172" width="80" height="80" rx="6" fill="#e6f8e4"/>' +
-      '<path d="M 372 184 L 380 206 L 402 206 L 384 220 L 391 242 L 372 229 L 353 242 L 360 220 L 342 206 L 364 206 Z" fill="#fde68a"/>' +
+      // baseboard
+      '<rect y="632" width="1280" height="18" fill="#ffffff" opacity="0.9"/>' +
+      // floor: warm honey oak
+      '<rect y="648" width="1280" height="152" fill="#e0b060"/>' + planks +
+      // rug
+      '<ellipse cx="640" cy="740" rx="450" ry="54" fill="#38a85c" opacity="0.35"/>' +
+      '<ellipse cx="640" cy="740" rx="390" ry="42" fill="#50bc74" opacity="0.55"/>' +
+      // window frame
+      '<rect x="996" y="116" width="208" height="258" rx="16" fill="#ffffff"/>' +
+      '<rect x="1010" y="130" width="180" height="230" rx="8" fill="#5ab4e8"/>' +
+      // sun with rays
+      '<circle cx="1122" cy="198" r="30" fill="#ffd700"/>' +
+      '<g stroke="#ffd700" stroke-width="5.5" stroke-linecap="round">' +
+      '<line x1="1122" y1="154" x2="1122" y2="146"/>' +
+      '<line x1="1152" y1="168" x2="1158" y2="162"/>' +
+      '<line x1="1166" y1="198" x2="1174" y2="198"/>' +
+      '<line x1="1152" y1="228" x2="1158" y2="234"/>' +
+      '<line x1="1122" y1="242" x2="1122" y2="250"/>' +
+      '<line x1="1092" y1="228" x2="1086" y2="234"/>' +
+      '<line x1="1078" y1="198" x2="1070" y2="198"/>' +
+      '<line x1="1092" y1="168" x2="1086" y2="162"/>' +
+      '</g>' +
+      // cloud in window
+      '<ellipse cx="1048" cy="272" rx="38" ry="16" fill="#ffffff" opacity="0.75"/>' +
+      '<ellipse cx="1072" cy="260" rx="28" ry="17" fill="#ffffff" opacity="0.75"/>' +
+      // window cross + curtains
+      '<path d="M 1100 130 L 1100 360 M 1010 248 L 1190 248" stroke="#ffffff" stroke-width="8" opacity="0.85"/>' +
+      '<path d="M 988 108 L 1068 108 Q 1050 244 1074 370 L 988 370 Z" fill="#f9b0cc" opacity="0.9"/>' +
+      '<path d="M 1212 108 L 1132 108 Q 1150 244 1126 370 L 1212 370 Z" fill="#f9b0cc" opacity="0.9"/>' +
+      '<rect x="972" y="98" width="256" height="13" rx="6.5" fill="#d98ab0"/>' +
+      // pictures on wall
+      '<rect x="128" y="126" width="154" height="116" rx="12" fill="#ffffff" opacity="0.95"/><rect x="140" y="138" width="130" height="92" rx="6" fill="#ffe0f0"/>' +
+      '<path d="M 205 206 C 158 174 168 146 192 154 C 200 156 205 166 205 166 C 205 166 210 156 218 154 C 242 146 252 174 205 206 Z" fill="#f580b8"/>' +
+      '<rect x="316" y="156" width="108" height="108" rx="12" fill="#ffffff" opacity="0.95"/><rect x="328" y="168" width="84" height="84" rx="6" fill="#e0f8dc"/>' +
+      '<path d="M 370 181 L 378 203 L 402 203 L 384 217 L 391 239 L 370 226 L 349 239 L 356 217 L 338 203 L 362 203 Z" fill="#fde068"/>' +
       // plant
-      '<path d="M 1120 560 L 1180 560 L 1170 640 L 1130 640 Z" fill="#f4c7a3"/>' +
-      '<ellipse cx="1150" cy="530" rx="18" ry="44" fill="#a8dfb0" transform="rotate(-25 1150 540)"/>' +
-      '<ellipse cx="1150" cy="522" rx="18" ry="48" fill="#8fd39b"/>' +
-      '<ellipse cx="1150" cy="530" rx="18" ry="44" fill="#a8dfb0" transform="rotate(25 1150 540)"/>' +
+      '<path d="M 1116 558 L 1180 558 L 1170 642 L 1126 642 Z" fill="#d4925a"/>' +
+      '<ellipse cx="1148" cy="526" rx="20" ry="46" fill="#7ec884" transform="rotate(-26 1148 538)"/>' +
+      '<ellipse cx="1148" cy="518" rx="20" ry="50" fill="#56b468"/>' +
+      '<ellipse cx="1148" cy="526" rx="20" ry="46" fill="#7ec884" transform="rotate(26 1148 538)"/>' +
       '<g id="decor"></g>' +
       '</svg>';
   };
