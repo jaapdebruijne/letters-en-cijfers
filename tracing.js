@@ -46,6 +46,7 @@
     top.appendChild(marker); top.appendChild(ghost);
 
     var active = null, last = null, cur = null, curD = '', inkLen = 0;
+    var inkPoints = [], inkSample = 0;
     var locked = false, solved = false, dead = false, tries = 0;
     var attemptT = 0, helpT = 0, raf = 0;
 
@@ -70,7 +71,7 @@
       var old = Array.prototype.slice.call(ink.childNodes);
       old.forEach(function (n) { n.setAttribute('class', 'ink fading'); });
       setTimeout(function () { old.forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); }); }, 450);
-      inkLen = 0; cur = null; curD = '';
+      inkLen = 0; cur = null; curD = ''; inkPoints = []; inkSample = 0;
     }
 
     function local(e) {
@@ -130,12 +131,42 @@
       var steps = Math.ceil(dist / 5);
       for (var i = 1; i <= steps; i++) hit([last[0] + dx * i / steps, last[1] + dy * i / steps]);
       inkLen += dist;
+      inkSample++;
+      if (inkSample % 4 === 0 && inkPoints.length < 400) inkPoints.push([p[0], p[1]]);
       curD += ' L ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
       if (cur) cur.setAttribute('d', curD);
       last = p;
     }
 
+    // What fraction of drawn ink points are farther than 2× the tolerance radius from any guide point?
+    // A correct trace is near the path throughout; a scribble wanders far from it.
+    function strayFraction() {
+      if (inkPoints.length < 5) return 0;
+      var allPts = [];
+      tracks.forEach(function (t) { allPts = allPts.concat(t.pts); });
+      var strayR2 = Math.pow(Math.max(cfg.r * 2, 30), 2);
+      var far = 0;
+      for (var i = 0; i < inkPoints.length; i++) {
+        var pt = inkPoints[i], best = Infinity;
+        for (var j = 0; j < allPts.length; j++) {
+          var dx = allPts[j][0] - pt[0], dy = allPts[j][1] - pt[1];
+          var d2 = dx * dx + dy * dy;
+          if (d2 < best) best = d2;
+        }
+        if (best > strayR2) far++;
+      }
+      return far / inkPoints.length;
+    }
+
     function win() {
+      if (strayFraction() > 0.40) {
+        tries++;
+        clearInk();
+        resetTracks();
+        if (cb.onTry) cb.onTry(tries);
+        if (tries >= 5) { tries = 0; if (cb.onHelp) cb.onHelp(); helpT = setTimeout(function () { demo(); }, 1500); }
+        return;
+      }
       solved = true; locked = true;
       clearTimeout(attemptT);
       marker.setAttribute('visibility', 'hidden');
