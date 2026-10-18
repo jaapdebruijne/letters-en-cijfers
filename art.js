@@ -2,7 +2,7 @@
   'use strict';
   var LC = (window.LC = window.LC || {});
 
-  // Soft-3D cat colours. Light is always at the top left; Pinky has peach cheeks and lilac pads.
+  // Soft-3D furry cat colours. Fur is lit softly from above; Pinky has peach cheeks and lilac pads.
   var FUR = {
     pinky: {
       furLicht: '#FFE4EE', fur: '#F5AFC8', furSchaduw: '#D97399',
@@ -10,7 +10,7 @@
       buik: ['#FFFFFF', '#FFEAF1', '#F6CADB'],
       iris: ['#D2EBFF', '#8DC2F0', '#4F86C6'],
       oorRand1: '#F0A6C1', oorRand2: '#E596B5', binnenoorRand: '#F7B9CF',
-      blos: '#FF9A76', blosDekking: '0.7', kussens: '#B68AD9'
+      blos: '#FF9A76', blosDekking: '0.7', kussens: '#B68AD9', zaad: 11
     },
     groentje: {
       furLicht: '#E4F7DC', fur: '#AEDEA5', furSchaduw: '#70B46C',
@@ -18,64 +18,303 @@
       buik: ['#FFFFFF', '#EFF9EB', '#CAE8C3'],
       iris: ['#FFF0C2', '#F6C766', '#D4923A'],
       oorRand1: '#A6DA9D', oorRand2: '#93CC8C', binnenoorRand: '#F3BFCB',
-      blos: '#F4A7A0', blosDekking: '0.6', kussens: '#F3A9BB'
+      blos: '#F4A7A0', blosDekking: '0.6', kussens: '#F3A9BB', zaad: 29
     }
   };
   var catSeq = 0;   // every cat drawing gets its own gradient ids
 
+  // Pluizige vacht: getande randen (plukjes) die onder de gladde vormen uitsteken.
+  var PLUIS = {
+    hoofd: 'M162.1 86 Q171.2 90.7 168.1 95 Q166.9 100 160 99.1 Q167.8 106.1 163.3 109.6 Q160.6 114.1 153.8 111.2 Q158.9 119.9 153.6 122.2 Q149.6 126 143.9 121.7 Q145.6 130.5 139.9 131.7 Q135 134.4 131 129.7 Q129.4 137.1 123.8 137.4 Q118.3 138.9 116.1 134.7 Q113.7 139.8 107.8 139.4 Q102 139.7 100 136.4 Q98.4 140.9 92.2 139.4 Q86.2 138.6 83.9 134.7 Q82.3 140.7 76.2 137.4 Q70.4 135.3 69 129.7 Q64.9 136.7 60.1 131.7 Q55 128.3 56.1 121.7 Q49.4 128.3 46.4 122.2 Q42.5 117.8 46.2 111.2 Q37.7 116.1 36.7 109.6 Q34.2 104.4 40 99.1 Q31 101.5 31.9 95 Q31.1 89.6 37.9 86 Q29.2 86 31.8 80.1 Q32.8 74.8 40 72.9 Q32.1 70.8 36.3 65.8 Q38.9 60.9 46.2 60.8 Q39.8 57.1 45.3 53.2 Q49.3 49 56.1 50.3 Q51.7 45.9 57.9 43.2 Q63.1 40.1 69 42.3 Q66.4 37.8 73.1 36.5 Q79 34.6 83.9 37.3 Q84.4 32.8 90.8 32.9 Q96.8 32.5 100 35.6 Q103.6 31.4 109.2 32.9 Q115 33.8 116.1 37.3 Q122.4 33.6 126.9 36.5 Q132.1 38.6 131 42.3 Q138.7 39.2 142.1 43.2 Q146.4 46.4 143.9 50.3 Q152.8 48.4 154.7 53.2 Q158 57.3 153.8 60.8 Q163.5 60.7 163.7 65.8 Q165.6 70.5 160 72.9 Q169.6 75.2 168.2 80.1 Q168.5 85.1 162.1 86 Z',
+    dijLinks: 'M91.3 180 Q96.9 184.9 93.9 189.7 Q91.2 194.7 86.8 193.1 Q88.4 200.4 83.1 202.5 Q77.8 205.1 75.2 201.2 Q74.4 207.7 68 206.8 Q61.9 206.2 60.8 201.2 Q58.5 206.9 52.9 202.5 Q48.1 198.7 49.2 193.1 Q44 196.3 42.1 189.7 Q40.5 183.8 44.7 180 Q38.6 179.6 41.1 173.1 Q43.4 167.5 49.2 166.9 Q44.5 163 50.5 159.2 Q55.8 155.9 60.8 158.8 Q61.6 152.3 68 153.2 Q74.1 153.8 75.2 158.8 Q81.7 154.9 85.5 159.2 Q89.7 163.2 86.8 166.9 Q94.4 167.5 94.9 173.1 Q95.7 178.7 91.3 180 Z',
+    dijRechts: 'M155.3 180 Q160.9 184.9 157.9 189.7 Q155.2 194.7 150.8 193.1 Q152.4 200.4 147.1 202.5 Q141.8 205.1 139.2 201.2 Q138.4 207.7 132 206.8 Q125.9 206.2 124.8 201.2 Q122.5 206.9 116.9 202.5 Q112.1 198.7 113.2 193.1 Q108 196.3 106.1 189.7 Q104.5 183.8 108.7 180 Q102.6 179.6 105.1 173.1 Q107.4 167.5 113.2 166.9 Q108.5 163 114.5 159.2 Q119.8 155.9 124.8 158.8 Q125.6 152.3 132 153.2 Q138.1 153.8 139.2 158.8 Q145.7 154.9 149.5 159.2 Q153.7 163.2 150.8 166.9 Q158.4 167.5 158.9 173.1 Q159.7 178.7 155.3 180 Z',
+    hoofdWaas: 'M162.1 86 Q175.4 91 171.2 95.5 Q169.9 100.7 160 99.1 Q172 107.6 166.3 110.9 Q163.5 115.7 153.8 111.2 Q162.4 122.3 156 124.2 Q151.8 128.1 143.9 121.7 Q147.9 133.3 141.5 133.9 Q136.3 136.7 131 129.7 Q130.6 139.6 124.6 139.3 Q118.8 140.9 116.1 134.7 Q114.1 141.7 108 140.9 Q102 141.2 100 136.4 Q98.4 142.9 92 140.9 Q85.8 140 83.9 134.7 Q81.6 143.4 75.4 139.3 Q69.4 137.1 69 129.7 Q63.1 139.8 58.5 133.9 Q53.2 130.3 56.1 121.7 Q46.4 131.3 44 124.2 Q39.9 119.5 46.2 111.2 Q33.9 118.4 33.7 110.9 Q31.1 105.5 40 99.1 Q27 102.6 28.8 95.5 Q28 89.8 37.9 86 Q25.3 86 28.9 79.8 Q30 74.2 40 72.9 Q28.5 69.9 33.7 64.8 Q36.5 59.6 46.2 60.8 Q37 55.4 43.3 51.7 Q47.5 47.4 56.1 50.3 Q49.6 43.9 56.6 41.6 Q61.9 38.4 69 42.3 Q65.2 35.8 72.4 34.9 Q78.4 32.9 83.9 37.3 Q83.9 31 90.6 31.5 Q96.8 31 100 35.6 Q103.7 29.4 109.4 31.5 Q115.3 32.4 116.1 37.3 Q123.2 31.4 127.6 34.9 Q132.9 37.1 131 42.3 Q140.3 36.9 143.4 41.6 Q147.9 44.9 143.9 50.3 Q155.4 46.3 156.7 51.7 Q160.1 56 153.8 60.8 Q166.8 59.1 166.3 64.8 Q168.2 69.8 160 72.9 Q173.5 74.5 171.1 79.8 Q171.4 85.1 162.1 86 Z',
+    dijLinksWaas: 'M91.3 180 Q100 185.4 96.1 190.5 Q93.1 196 86.8 193.1 Q90.6 202.6 84.3 204.5 Q78.6 207.2 75.2 201.2 Q75.1 210.7 68 209.1 Q61.4 208.4 60.8 201.2 Q57.5 209.8 51.7 204.5 Q46.4 200.3 49.2 193.1 Q41.4 198.1 39.9 190.5 Q38.2 184.1 44.7 180 Q35.5 179.5 38.9 172.5 Q41.4 166.4 49.2 166.9 Q42 161.1 49 157.4 Q54.8 153.9 60.8 158.8 Q60.9 149.3 68 150.9 Q74.6 151.6 75.2 158.8 Q83.2 152.2 87 157.4 Q91.5 161.8 86.8 166.9 Q97.1 166.1 97.1 172.5 Q98 178.6 91.3 180 Z',
+    dijRechtsWaas: 'M155.3 180 Q164 185.4 160.1 190.5 Q157.1 196 150.8 193.1 Q154.6 202.6 148.3 204.5 Q142.6 207.2 139.2 201.2 Q139.1 210.7 132 209.1 Q125.4 208.4 124.8 201.2 Q121.5 209.8 115.7 204.5 Q110.4 200.3 113.2 193.1 Q105.4 198.1 103.9 190.5 Q102.2 184.1 108.7 180 Q99.5 179.5 102.9 172.5 Q105.4 166.4 113.2 166.9 Q106 161.1 113 157.4 Q118.8 153.9 124.8 158.8 Q124.9 149.3 132 150.9 Q138.6 151.6 139.2 158.8 Q147.2 152.2 151 157.4 Q155.5 161.8 150.8 166.9 Q161.1 166.1 161.1 172.5 Q162 178.6 155.3 180 Z',
+    kraag: 'M74 128 Q76 134.2 75.5 139 Q81 135.6 82 131.8 Q84 137.6 83.5 143.3 Q89 137.9 90 133.3 Q92 140.1 91.5 146.8 Q97 139.4 98 134 Q100 141.2 104.5 148.5 Q105 139.6 106 133.8 Q108 140 112.5 146.3 Q113 137.7 114 132.7 Q116 137.9 120.5 143.2 Q121 135 122 130.8 Q124 135.1 127.5 139.5 Q127 132.3 128 128.8 L128 118 L74 118 Z'
+  };
+
+  // ---------- Haren ----------
+  // Een vaste "toevalsgenerator" met zaadje: de poes ziet er elke keer precies hetzelfde uit.
+  function rng(seed) {
+    return function () {
+      seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function r1(v) { return Math.round(v * 10) / 10; }
+  // Alle haren van een laag worden per kleur in 1 <path> gebundeld: weinig elementen, licht voor de tablet.
+  function Bundel() { this.d = { donker: '', basis: '', licht: '', wit: '', streep: '', pluis: '' }; }
+  Bundel.prototype.haar = function (rnd, tone, x, y, ang, len) {
+    ang += 0.28 * Math.sin(x * 0.13 + y * 0.07) + 0.18 * Math.sin(y * 0.19 - x * 0.06);
+    var curl = (rnd() - 0.5) * 0.8 + 0.25 * Math.sin(x * 0.09 - y * 0.11);
+    var ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
+    var mx = (x + ex) / 2 - Math.sin(ang) * len * curl * 0.5, my = (y + ey) / 2 + Math.cos(ang) * len * curl * 0.5;
+    this.d[tone] += 'M' + r1(x) + ' ' + r1(y) + 'Q' + r1(mx) + ' ' + r1(my) + ' ' + r1(ex) + ' ' + r1(ey);
+  };
+  Bundel.prototype.svg = function (k) {
+    // [kleur, dekking, dikte]: donkere wortels onderop, lichte punten bovenop = diepte in de vacht.
+    var kl = { donker: [k.furSchaduw, 0.6, 0.6], basis: [k.fur, 0.8, 0.5], licht: [k.furLicht, 0.85, 0.42], wit: [k.buik[1], 0.85, 0.55], streep: [k.diep, 0.7, 0.7], pluis: ['#FFFFFF', 0.5, 0.4] };
+    var out = '', d = this.d;
+    Object.keys(d).forEach(function (t) {
+      if (d[t]) out += '<path d="' + d[t] + '" fill="none" stroke="' + kl[t][0] + '" stroke-opacity="' + kl[t][1] + '" stroke-width="' + kl[t][2] + '" stroke-linecap="round"/>';
+    });
+    return out;
+  };
+  // Licht van linksboven: welke kleur krijgt een haar op deze plek?
+  // Vacht: licht valt zacht van boven; de uiteinden van haren aan de rand vangen licht (glans-rand).
+  function toon(nx, ny) { return ny < -0.35 ? 'licht' : ny > 0.55 ? 'donker' : 'basis'; }
+  function randToon(rnd, ny) { return ny > 0.6 ? 'donker' : rnd() < 0.55 ? 'licht' : 'basis'; }
+  // Richting mengen met "naar beneden" (vacht valt omlaag).
+  function richting(ang, omlaag, rnd, wiebel) {
+    var dx = Math.cos(ang) * (1 - omlaag), dy = Math.sin(ang) * (1 - omlaag) + omlaag;
+    return Math.atan2(dy, dx) + (rnd() - 0.5) * wiebel;
+  }
+  // Haren op en in een ovaal: een pluizige rand plus korte haartjes erbinnen.
+  function ovaalHaren(b, rnd, o) {
+    var i, t, r, x, y, a, nx, ny;
+    for (i = 0; i < o.rand; i++) {
+      t = 2 * Math.PI * (i + rnd() * 0.8) / o.rand;
+      r = 0.84 + rnd() * 0.14;
+      x = o.cx + o.rx * r * Math.cos(t); y = o.cy + o.ry * r * Math.sin(t);
+      if (o.skip && o.skip(x, y)) continue;
+      a = Math.atan2(Math.sin(t) / o.ry, Math.cos(t) / o.rx);
+      b.haar(rnd, o.toon || randToon(rnd, Math.sin(t)), x, y, richting(a, o.omlaag * (0.6 + 0.4 * rnd()), rnd, 0.4), o.lenRand(t) * (0.7 + rnd() * 0.5));
+    }
+    for (i = 0; i < o.binnen; i++) {
+      t = rnd() * 2 * Math.PI; r = Math.sqrt(rnd()) * 0.82;
+      nx = r * Math.cos(t); ny = r * Math.sin(t);
+      x = o.cx + o.rx * nx; y = o.cy + o.ry * ny;
+      if (o.skip && o.skip(x, y)) continue;
+      a = Math.atan2(ny / o.ry, nx / o.rx);
+      b.haar(rnd, o.toon || toon(nx, ny), x, y, richting(a, 0.55, rnd, 0.6), o.lenBinnen[0] + rnd() * (o.lenBinnen[1] - o.lenBinnen[0]));
+    }
+  }
+  // Haren langs een staart (bezier-curve), naar buiten en een beetje richting de punt.
+  function staartHaren(b, rnd, p, n, half, len) {
+    for (var i = 0; i < n; i++) {
+      var s = (i + rnd()) / n, u = 1 - s;
+      var x = u*u*u*p[0] + 3*u*u*s*p[2] + 3*u*s*s*p[4] + s*s*s*p[6];
+      var y = u*u*u*p[1] + 3*u*u*s*p[3] + 3*u*s*s*p[5] + s*s*s*p[7];
+      var tx = 3*u*u*(p[2]-p[0]) + 6*u*s*(p[4]-p[2]) + 3*s*s*(p[6]-p[4]);
+      var ty = 3*u*u*(p[3]-p[1]) + 6*u*s*(p[5]-p[3]) + 3*s*s*(p[7]-p[5]);
+      var tl = Math.sqrt(tx*tx + ty*ty) || 1; tx /= tl; ty /= tl;
+      var kant = i % 2 ? 1 : -1, nx = -ty * kant, ny = tx * kant;
+      var off = half * (0.4 + rnd() * 0.6);
+      var ang = Math.atan2(ny * 0.6 + ty * 0.4, nx * 0.6 + tx * 0.4) + (rnd() - 0.5) * 0.4;
+      b.haar(rnd, randToon(rnd, ny), x + nx * off, y + ny * off, ang, len * (0.7 + rnd() * 0.6));
+    }
+  }
+  // Haren langs de zijkanten van een pootje (rechthoek).
+  function armHaren(b, rnd, x, y, w, h, n) {
+    for (var i = 0; i < n; i++) {
+      var links = i % 2 === 0, yy = y + 6 + rnd() * (h - 12);
+      var xx = links ? x + 2 + rnd() * 3 : x + w - 2 - rnd() * 3;
+      b.haar(rnd, rnd() < 0.6 ? 'licht' : 'basis', xx, yy, richting(links ? Math.PI : 0, 0.6, rnd, 0.4), 4 + rnd() * 3);
+    }
+    for (i = 0; i < n / 2; i++) {
+      b.haar(rnd, 'basis', x + 5 + rnd() * (w - 10), y + 4 + rnd() * (h - 10), richting(Math.PI / 2, 0.2, rnd, 0.5), 3 + rnd() * 3);
+    }
+  }
+  function aantal(n, dichtheid) { return Math.round(n * dichtheid); }
+
+  // ---- Dichte vacht ----
+  // Kies een tint: boven en aan de rand meer licht, onder meer donker.
+  var plek = [0, 0];
+  function diepte(x, y) {
+    var nek = Math.max(0, 1 - Math.abs(y - 140) / 14) * Math.max(0, 1 - Math.abs(x - 100) / 55);
+    var onder = Math.max(0, (y - 190) / 20), tussen = Math.max(0, 1 - Math.abs(x - 100) / 14) * Math.max(0, (y - 150) / 50);
+    var kin = Math.max(0, Math.min(1, (y - 100) / 35)) * Math.max(0, 1 - Math.abs(x - 100) / 70) * (y < 140 ? 1 : 0);
+    return Math.min(0.55, 0.5 * nek + 0.25 * onder + 0.35 * tussen + 0.22 * kin);
+  }
+  var straal = 0;
+  function kiesToon(rnd, ny, rand) {
+    var dd = diepte(plek[0], plek[1]) + (straal > 0.62 && straal < 0.88 ? 0.15 : 0);
+    var l = Math.max(0, 0.08 + 0.26 * Math.max(0, -ny) + (rand ? 0.3 : 0) - dd), d = rand ? 0.08 + dd * 0.5 : 0.42 + 0.36 * Math.max(0, ny) + dd;
+    var u = rnd();
+    return u < l ? 'licht' : u < l + d ? 'donker' : 'basis';
+  }
+  // Haren over een heel ovaal: kort in het midden, lang aan de rand, plus fijne pluisjes die ver uitsteken.
+  function vachtOvaal(b, rnd, o) {
+    var i, r, t, nx, ny, x, y, a, len, e;
+    for (i = 0; i < o.n; i++) {
+      r = Math.sqrt(rnd()) * 1.02; t = rnd() * 2 * Math.PI;
+      nx = Math.cos(t) * r; ny = Math.sin(t) * r;
+      x = o.cx + o.rx * nx; y = o.cy + o.ry * ny;
+      if (o.skip && o.skip(x, y)) continue;
+      plek[0] = x; plek[1] = y; straal = r;
+      a = r < 0.12 ? Math.PI / 2 : Math.atan2(ny / o.ry, nx / o.rx);
+      e = o.rand ? o.rand(t) : 1;
+      len = (o.kort + (o.lang * e - o.kort) * Math.pow(r, 2.2)) * (0.65 + rnd() * 0.7);
+      b.haar(rnd, o.toon || kiesToon(rnd, Math.sin(t) * r, r > 0.85), x, y, richting(a, o.omlaag, rnd, 0.18), len);
+    }
+    for (i = 0; i < (o.pluis || 0); i++) {
+      t = rnd() * 2 * Math.PI; r = 0.9 + rnd() * 0.1;
+      x = o.cx + o.rx * Math.cos(t) * r; y = o.cy + o.ry * Math.sin(t) * r;
+      if (o.skip && o.skip(x, y)) continue;
+      a = Math.atan2(Math.sin(t) / o.ry, Math.cos(t) / o.rx);
+      e = o.rand ? o.rand(t) : 1;
+      b.haar(rnd, o.toon || (Math.sin(t) > 0.6 ? 'basis' : 'pluis'), x, y, richting(a, o.omlaag * 0.7, rnd, 0.2), o.lang * e * (i % 12 ? 0.5 + rnd() * 0.7 : 1.4 + rnd() * 0.8));
+    }
+  }
+  // Haren over een staart (bezier): vanaf de middellijn naar buiten, richting de punt.
+  // Streepjes in de vacht: donkere haren langs een lijntje.
+  function streepHaren(b, rnd, lijnen, n) {
+    lijnen.forEach(function (L) {
+      for (var i = 0; i < n; i++) {
+        var s = rnd(), x = L[0] + s * (L[2] - L[0]) + (rnd() - 0.5) * 4, y = L[1] + s * (L[3] - L[1]);
+        b.haar(rnd, 'streep', x, y, Math.atan2(L[3] - L[1], L[2] - L[0]) + (rnd() - 0.5) * 0.5, 3 + rnd() * 4);
+      }
+    });
+  }
+  function vachtStaart(b, rnd, p, n, half, lang) {
+    straal = 0;
+    for (var i = 0; i < n; i++) {
+      var s = rnd(), u = 1 - s;
+      var x = u*u*u*p[0] + 3*u*u*s*p[2] + 3*u*s*s*p[4] + s*s*s*p[6];
+      var y = u*u*u*p[1] + 3*u*u*s*p[3] + 3*u*s*s*p[5] + s*s*s*p[7];
+      var tx = 3*u*u*(p[2]-p[0]) + 6*u*s*(p[4]-p[2]) + 3*s*s*(p[6]-p[4]);
+      var ty = 3*u*u*(p[3]-p[1]) + 6*u*s*(p[5]-p[3]) + 3*s*s*(p[7]-p[5]);
+      var tl = Math.sqrt(tx*tx + ty*ty) || 1; tx /= tl; ty /= tl;
+      var kant = rnd() < 0.5 ? 1 : -1, nx = -ty * kant, ny = tx * kant, off = half * rnd();
+      plek[0] = x + nx * off; plek[1] = y + ny * off;
+      var w = off / half, ang = Math.atan2(ny * (0.3 + 0.5 * w) + ty * 0.5, nx * (0.3 + 0.5 * w) + tx * 0.5) + (rnd() - 0.5) * 0.5;
+      var len = (2.5 + lang * w * w) * (0.7 + rnd() * 0.7);
+      b.haar(rnd, w > 0.85 && rnd() < 0.5 ? 'pluis' : kiesToon(rnd, ny, w > 0.8), x + nx * off, y + ny * off, ang, len);
+    }
+  }
+  // Haren over een pootje (rechthoek): naar buiten en omlaag.
+  function vachtArm(b, rnd, x, y, w, h, n) {
+    straal = 0;
+    for (var i = 0; i < n; i++) {
+      var fx = rnd(), xx = x + fx * w, yy = y + 4 + rnd() * (h - 6), side = (fx - 0.5) * 2;
+      plek[0] = xx; plek[1] = yy;
+      var ang = richting(side < 0 ? Math.PI : 0, 0.75 - 0.35 * Math.abs(side), rnd, 0.4);
+      var len = (2.5 + 5.5 * Math.pow(Math.abs(side), 2)) * (0.7 + rnd() * 0.7);
+      b.haar(rnd, Math.abs(side) > 0.8 && rnd() < 0.4 ? 'pluis' : kiesToon(rnd, 0.2, Math.abs(side) > 0.8), xx, yy, ang, len);
+    }
+  }
+  // Haren over een oor (driehoek), weg van het hoofd.
+  function vachtOor(b, rnd, A, B, C, n) {
+    straal = 0;
+    for (var i = 0; i < n; i++) {
+      var u = rnd(), v = rnd(); if (u + v > 1) { u = 1 - u; v = 1 - v; }
+      var x = A[0] + u * (B[0] - A[0]) + v * (C[0] - A[0]), y = A[1] + u * (B[1] - A[1]) + v * (C[1] - A[1]);
+      var ang = Math.atan2(y - 95, x - 100) + (rnd() - 0.5) * 0.6;
+      b.haar(rnd, u > 0.7 && rnd() < 0.5 ? 'pluis' : kiesToon(rnd, -0.6, u > 0.6), x, y, ang, (2 + rnd() * 3.5) * (u > 0.6 ? 1.8 : 1));
+    }
+  }
+  // Pluisjes langs de buitenrand van een oor (van punt A naar punt B), naar buiten gericht.
+  function oorRand(b, rnd, A, B, buiten, n) {
+    for (var i = 0; i < n; i++) {
+      var s = rnd(), x = A[0] + s * (B[0] - A[0]), y = A[1] + s * (B[1] - A[1]);
+      plek[0] = x; plek[1] = y;
+      b.haar(rnd, rnd() < 0.5 ? 'pluis' : 'licht', x, y, buiten + (rnd() - 0.5) * 0.7 - 0.25 * s * Math.sign(Math.cos(buiten)), 3 + rnd() * 6);
+    }
+  }
+  function hoofdRand(t) { return 0.8 + 0.6 * Math.pow(Math.abs(Math.cos(t)), 1.5) * (0.5 + 0.5 * Math.max(0, Math.sin(t))); }
+  var haarCache = {};
+  function haarLaag(k, h, zaad, vul) {
+    if (!h) return '';
+    var sleutel = k.zaad + '/' + zaad + '/' + h;
+    if (!haarCache[sleutel]) { var b = new Bundel(); vul(b, rng(k.zaad * 1000 + zaad), h); haarCache[sleutel] = '<g class="kat-haren">' + b.svg(k) + '</g>'; }
+    return haarCache[sleutel];
+  }
+  function hoofdHaarLengte(t) { return 6.5 + 9 * Math.pow(Math.abs(Math.cos(t)), 1.5) * (0.5 + 0.5 * Math.max(0, Math.sin(t))); }
+  function nietInGezicht(x, y) {
+    var m = (x - 100) / 30, n = (y - 108) / 18, a = (x - 76) / 17, c = (y - 86) / 19, e = (x - 124) / 17;
+    return m * m + n * n < 1;
+  }
+
+
   function catDefs(p, k) {
     return '<defs>' +
-      '<radialGradient id="' + p + '-rim" cx="0.3" cy="0.25" r="0.85"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.86" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="0.97" stop-color="#FFFFFF" stop-opacity="0.5"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0.5"/></radialGradient>' +
+      '<radialGradient id="' + p + '-rim" cx="0.5" cy="0.42" r="0.58"><stop offset="0" stop-color="' + k.furSchaduw + '" stop-opacity="0"/><stop offset="0.6" stop-color="' + k.furSchaduw + '" stop-opacity="0"/><stop offset="1" stop-color="' + k.furSchaduw + '" stop-opacity="0.45"/></radialGradient>' +
       '<radialGradient id="' + p + '-grond" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#3D3355" stop-opacity="0.24"/><stop offset="1" stop-color="#3D3355" stop-opacity="0"/></radialGradient>' +
       '<radialGradient id="' + p + '-puf" cx="0.4" cy="0.35" r="0.6"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.32"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient>' +
       '<linearGradient id="' + p + '-neus" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F49AB4"/><stop offset="1" stop-color="#D85F80"/></linearGradient>' +
       '<linearGradient id="' + p + '-oor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E88AAB"/><stop offset="1" stop-color="#FFD3E2"/></linearGradient>' +
-      '<radialGradient id="' + p + '-fur" cx="0.36" cy="0.28" r="0.78"><stop offset="0" stop-color="' + k.furLicht + '"/><stop offset="0.45" stop-color="' + k.fur + '"/><stop offset="1" stop-color="' + k.furSchaduw + '"/></radialGradient>' +
-      '<linearGradient id="' + p + '-arm" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="' + k.armLicht + '"/><stop offset="0.5" stop-color="' + k.fur + '"/><stop offset="1" stop-color="' + k.armSchaduw + '"/></linearGradient>' +
+      '<linearGradient id="' + p + '-fur" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + k.furLicht + '"/><stop offset="0.35" stop-color="' + k.fur + '"/><stop offset="0.6" stop-color="' + k.fur + '"/><stop offset="1" stop-color="' + k.furSchaduw + '"/></linearGradient>' +
+      '<linearGradient id="' + p + '-arm" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="' + k.furLicht + '"/><stop offset="0.25" stop-color="' + k.fur + '"/><stop offset="0.75" stop-color="' + k.fur + '"/><stop offset="1" stop-color="' + k.furLicht + '"/></linearGradient>' +
       '<radialGradient id="' + p + '-buik" cx="0.42" cy="0.32" r="0.72"><stop offset="0" stop-color="' + k.buik[0] + '"/><stop offset="0.55" stop-color="' + k.buik[1] + '"/><stop offset="1" stop-color="' + k.buik[2] + '"/></radialGradient>' +
       '<radialGradient id="' + p + '-iris" cx="0.5" cy="0.85" r="0.75"><stop offset="0" stop-color="' + k.iris[0] + '"/><stop offset="0.5" stop-color="' + k.iris[1] + '"/><stop offset="1" stop-color="' + k.iris[2] + '"/></radialGradient>' +
       '</defs>';
   }
 
-  function catBody(p, k) {
+  function catBody(p, k, h) {
     var fur = 'url(#' + p + '-fur)', rim = 'url(#' + p + '-rim)', grond = 'url(#' + p + '-grond)';
-    return '<ellipse cx="104" cy="212" rx="82" ry="10" fill="' + grond + '"/>' +
+    return ''+
+      '<ellipse cx="104" cy="212" rx="82" ry="10" fill="' + grond + '"/>' +
       '<g class="tail kat-staart">' +
-      '<path d="M138 188 C164 192 180 176 178 156" fill="none" stroke="' + k.armSchaduw + '" stroke-width="20" stroke-linecap="round"/>' +
-      '<path d="M136 186 C161 189 175 174 174 156" fill="none" stroke="' + k.fur + '" stroke-width="12" stroke-linecap="round"/>' +
-      '<g class="kat-staartpunt">' +
-      '<path d="M178 156 C177 138 170 126 180 110" fill="none" stroke="' + k.armSchaduw + '" stroke-width="18" stroke-linecap="round"/>' +
-      '<path d="M174 156 C173 139 166 127 176 111" fill="none" stroke="' + k.fur + '" stroke-width="10" stroke-linecap="round"/>' +
-      '<path d="M171 146 C169 136 168 128 174 118" fill="none" stroke="' + k.furLicht + '" stroke-width="3.5" stroke-linecap="round" opacity="0.85"/>' +
-      '</g></g>' +
+        '<path d="M138 188 C164 192 180 176 178 156" fill="none" stroke="' + k.fur + '" stroke-width="20" stroke-linecap="round"/>' +
+        '<path d="M137 189 C163 193 179 177 178 158" fill="none" stroke="' + k.armSchaduw + '" stroke-width="9" stroke-linecap="round" opacity="0.18"/>' +
+        haarLaag(k, h, 1, function (b, rnd, h) { vachtStaart(b, rnd, [138, 188, 164, 192, 180, 176, 178, 156], aantal(1300, h), 10, 8); }) +
+        '<g class="kat-staartpunt">' +
+          '<path d="M178 156 C177 138 170 126 180 110" fill="none" stroke="' + k.fur + '" stroke-width="18" stroke-linecap="round"/>' +
+          '<path d="M179 156 C178 139 172 127 181 112" fill="none" stroke="' + k.armSchaduw + '" stroke-width="7" stroke-linecap="round" opacity="0.18"/>' +
+          haarLaag(k, h, 2, function (b, rnd, h) { vachtStaart(b, rnd, [178, 156, 177, 138, 170, 126, 180, 110], aantal(1300, h), 9, 9); vachtOvaal(b, rnd, { cx: 180, cy: 109, rx: 9, ry: 9, n: aantal(260, h), pluis: aantal(90, h), kort: 2, lang: 7, omlaag: 0 }); }) +
+        '</g>' +
+      '</g>' +
       '<path d="M62 202 C52 166 68 126 100 124 C132 126 148 166 138 202 Z" fill="' + fur + '"/>' +
       '<path d="M62 202 C52 166 68 126 100 124 C132 126 148 166 138 202 Z" fill="' + rim + '"/>' +
+      '<path d="' + PLUIS.dijLinksWaas + '" fill="' + fur + '" opacity="0.4"/>' +
+      '<path d="' + PLUIS.dijRechtsWaas + '" fill="' + fur + '" opacity="0.4"/>' +
+      '<path d="' + PLUIS.dijLinks + '" fill="' + fur + '"/>' +
+      '<path d="' + PLUIS.dijRechts + '" fill="' + fur + '"/>' +
       '<ellipse cx="68" cy="180" rx="24" ry="23" fill="' + fur + '"/>' +
       '<ellipse cx="132" cy="180" rx="24" ry="23" fill="' + fur + '"/>' +
+      '<ellipse cx="68" cy="180" rx="24" ry="23" fill="' + rim + '"/>' +
       '<ellipse cx="132" cy="180" rx="24" ry="23" fill="' + rim + '"/>' +
-      '<ellipse cx="60" cy="170" rx="8" ry="5" transform="rotate(-35 60 170)" fill="#FFFFFF" opacity="0.45"/>' +
+      haarLaag(k, h, 3, function (b, rnd, h) {
+        [68, 132].forEach(function (cx) {
+          vachtOvaal(b, rnd, { cx: cx, cy: 180, rx: 24, ry: 23, n: aantal(1800, h), pluis: aantal(650, h), kort: 2.2, lang: 8.5, omlaag: 0.35 });
+        });
+      }) +
       '<ellipse cx="100" cy="168" rx="22" ry="30" fill="url(#' + p + '-buik)"/>' +
+      '<path d="' + PLUIS.kraag + '" fill="url(#' + p + '-buik)"/>' +
+      haarLaag(k, h, 4, function (b, rnd, h) {
+        vachtOvaal(b, rnd, { cx: 100, cy: 168, rx: 22, ry: 30, n: aantal(900, h), kort: 2, lang: 6, omlaag: 0.7, toon: 'wit' });
+        for (var i = 0; i < aantal(210, h); i++) b.haar(rnd, 'wit', 76 + rnd() * 50, 128 + rnd() * 12, richting(Math.PI / 2, 0, rnd, 0.6), 8 + rnd() * 6);
+      }) +
       '<ellipse cx="60" cy="203" rx="19" ry="10" fill="' + fur + '"/>' +
       '<ellipse cx="140" cy="203" rx="19" ry="10" fill="' + fur + '"/>' +
+      haarLaag(k, h, 10, function (b, rnd, h) {
+        [60, 140].forEach(function (cx) { vachtOvaal(b, rnd, { cx: cx, cy: 203, rx: 19, ry: 10, n: aantal(320, h), kort: 1.8, lang: 4.5, omlaag: 0.4 }); });
+      }) +
       '<path d="M55 200 L55 207 M65 200 L65 207 M135 200 L135 207 M145 200 L145 207" stroke="' + k.diep + '" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>' +
-      '<ellipse cx="54" cy="198" rx="6" ry="2.8" fill="#FFFFFF" opacity="0.6"/>' +
-      '<ellipse cx="100" cy="134" rx="46" ry="11" fill="' + grond + '"/>';
+      '<ellipse cx="100" cy="136" rx="50" ry="14" fill="' + grond + '"/>' +
+      '<ellipse cx="100" cy="136" rx="34" ry="9" fill="' + grond + '"/>' +
+      '';
   }
 
-  function catHead(p, k) {
+  function catHead(p, k, h) {
     var fur = 'url(#' + p + '-fur)', rim = 'url(#' + p + '-rim)', puf = 'url(#' + p + '-puf)', oor = 'url(#' + p + '-oor)';
     var vorm = 'M100 30 C142 30 166 56 166 88 C166 122 136 138 100 138 C64 138 34 122 34 88 C34 56 58 30 100 30 Z';
-    return '<path d="M48 78 L55 18 Q57 10 65 14 L100 46 Z" fill="' + fur + '" stroke="' + k.oorRand1 + '" stroke-width="10" stroke-linejoin="round"/>' +
-      '<path d="M152 78 L145 18 Q143 10 135 14 L100 46 Z" fill="' + fur + '" stroke="' + k.oorRand2 + '" stroke-width="10" stroke-linejoin="round"/>' +
+    return ''+
+      '<path d="M48 78 L55 18 Q57 10 65 14 L100 46 Z" fill="' + fur + '" stroke="' + k.fur + '" stroke-width="3" stroke-linejoin="round"/>' +
+      '<path d="M152 78 L145 18 Q143 10 135 14 L100 46 Z" fill="' + fur + '" stroke="' + k.fur + '" stroke-width="3" stroke-linejoin="round"/>' +
       '<path d="M61 60 L63 28 L84 47 Z" fill="' + oor + '" stroke="' + k.binnenoorRand + '" stroke-width="6" stroke-linejoin="round"/>' +
       '<path d="M139 60 L137 28 L116 47 Z" fill="' + oor + '" stroke="' + k.binnenoorRand + '" stroke-width="6" stroke-linejoin="round"/>' +
-      '<path d="M54 64 L58 22" stroke="' + k.furLicht + '" stroke-width="3" stroke-linecap="round" opacity="0.8"/>' +
+      haarLaag(k, h, 5, function (b, rnd, h) {
+        vachtOor(b, rnd, [48, 78], [56, 14], [100, 46], aantal(650, h));
+        vachtOor(b, rnd, [152, 78], [144, 14], [100, 46], aantal(650, h));
+        oorRand(b, rnd, [47, 76], [56, 13], Math.PI * 1.05, aantal(160, h));
+        oorRand(b, rnd, [56, 13], [99, 45], -Math.PI * 0.3, aantal(160, h));
+        oorRand(b, rnd, [153, 76], [144, 13], -0.05, aantal(160, h));
+        oorRand(b, rnd, [144, 13], [101, 45], -Math.PI * 0.7, aantal(160, h));
+      }) +
+      '<path d="M70 56 q-2 -10 -9 -17 M75 53 q0 -9 -5 -15 M66 59 q-5 -7 -12 -10 M130 56 q2 -10 9 -17 M125 53 q0 -9 5 -15 M134 59 q5 -7 12 -10" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>' +
+      '<path d="' + PLUIS.hoofdWaas + '" fill="' + fur + '" opacity="0.4"/>' +
+      '<path d="' + PLUIS.hoofd + '" fill="' + fur + '"/>' +
       '<path d="' + vorm + '" fill="' + fur + '"/>' +
       '<path d="' + vorm + '" fill="' + rim + '"/>' +
-      '<ellipse cx="62" cy="108" rx="27" ry="21" fill="' + puf + '"/>' +
-      '<ellipse cx="138" cy="108" rx="27" ry="21" fill="' + puf + '"/>' +
-      '<ellipse cx="70" cy="52" rx="21" ry="10" transform="rotate(-30 70 52)" fill="#FFFFFF" opacity="0.45"/>' +
-      '<path d="M88 36 L90 50 M100 34 L100 49 M112 36 L110 50" stroke="' + k.diep + '" stroke-width="5" stroke-linecap="round" opacity="0.75"/>';
+      haarLaag(k, h, 6, function (b, rnd, h) {
+        vachtOvaal(b, rnd, { cx: 100, cy: 86, rx: 64, ry: 52, n: aantal(6000, h), pluis: aantal(1800, h), kort: 2.2, lang: 9.5, rand: hoofdRand, omlaag: 0.25, skip: nietInGezicht });
+      }) +
+      haarLaag(k, h, 11, function (b, rnd, h) { streepHaren(b, rnd, [[87, 34, 90, 52], [100, 32, 100, 51], [113, 34, 110, 52]], aantal(90, h)); }) +
+      '';
   }
 
   function catEye(p, cx) {
@@ -89,9 +328,7 @@
 
   function catFace(p, k) {
     var buik = 'url(#' + p + '-buik)';
-    return '<ellipse cx="76" cy="88" rx="18" ry="20" fill="' + k.furSchaduw + '" opacity="0.22"/>' +
-      '<ellipse cx="124" cy="88" rx="18" ry="20" fill="' + k.furSchaduw + '" opacity="0.22"/>' +
-      '<g class="eyes-open kat-oog">' + catEye(p, 76) + catEye(p, 124) + '</g>' +
+    return '<g class="eyes-open kat-oog">' + catEye(p, 76) + catEye(p, 124) + '</g>' +
       // happy: closed smiling eyes
       '<path class="eyes-happy" d="M62 92 Q76 76 90 92 M110 92 Q124 76 138 92" fill="none" stroke="#3D3355" stroke-width="5" stroke-linecap="round"/>' +
       '<ellipse cx="60" cy="112" rx="11" ry="6.5" fill="' + k.blos + '" opacity="' + k.blosDekking + '"/>' +
@@ -108,29 +345,35 @@
       '<path d="M58 100 L30 94 M58 107 L28 108 M60 114 L33 122 M142 100 L170 94 M142 107 L172 108 M140 114 L167 122" stroke="#B9AACF" stroke-width="2.5" stroke-linecap="round"/>';
   }
 
-  function catPaw(p, k, cx) {
+  function catPaw(p, k, cx, h) {
     return '<ellipse cx="' + cx + '" cy="198" rx="15" ry="10" fill="url(#' + p + '-fur)"/>' +
-      '<path d="M' + (cx - 5) + ' 195 L' + (cx - 5) + ' 202 M' + (cx + 5) + ' 195 L' + (cx + 5) + ' 202" stroke="' + k.diep + '" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>' +
-      '<ellipse cx="' + (cx - 5) + '" cy="194" rx="5" ry="2.5" fill="#FFFFFF" opacity="0.6"/>';
+      haarLaag(k, h, 20 + cx, function (b, rnd, h) { vachtOvaal(b, rnd, { cx: cx, cy: 198, rx: 15, ry: 10, n: aantal(260, h), kort: 1.8, lang: 4.5, omlaag: 0.4 }); }) +
+      '<path d="M' + (cx - 5) + ' 195 L' + (cx - 5) + ' 202 M' + (cx + 5) + ' 195 L' + (cx + 5) + ' 202" stroke="' + k.diep + '" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>' ;
   }
 
   // front legs; the left one is the waving arm (shoulder, then elbow)
-  function catPaws(p, k) {
+  function catPaws(p, k, h) {
     var arm = 'url(#' + p + '-arm)';
     return '<g class="paws-g">' +
       '<rect x="107" y="140" width="24" height="58" rx="12" fill="' + arm + '"/>' +
-      catPaw(p, k, 119) +
+      haarLaag(k, h, 7, function (b, rnd, h) { vachtArm(b, rnd, 107, 140, 24, 58, aantal(1000, h)); }) +
+      catPaw(p, k, 119, h) +
       '<g class="kat-bovenarm">' +
-      '<rect x="69" y="140" width="24" height="36" rx="12" fill="' + arm + '"/>' +
-      '<g class="kat-onderarm">' +
-      '<rect x="69.5" y="162" width="23" height="38" rx="11.5" fill="' + arm + '"/>' +
-      catPaw(p, k, 81) +
-      '<g class="kat-kussens" opacity="0">' +
-      '<ellipse cx="81" cy="196" rx="6" ry="4.2" fill="' + k.kussens + '"/>' +
-      '<circle cx="73" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
-      '<circle cx="81" cy="204" r="2.6" fill="' + k.kussens + '"/>' +
-      '<circle cx="89" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
-      '</g></g></g></g>';
+        '<rect x="69" y="140" width="24" height="36" rx="12" fill="' + arm + '"/>' +
+        haarLaag(k, h, 8, function (b, rnd, h) { vachtArm(b, rnd, 69, 140, 24, 36, aantal(650, h)); }) +
+        '<g class="kat-onderarm">' +
+          '<rect x="69.5" y="162" width="23" height="38" rx="11.5" fill="' + arm + '"/>' +
+          haarLaag(k, h, 9, function (b, rnd, h) { vachtArm(b, rnd, 69.5, 162, 23, 34, aantal(680, h)); }) +
+          catPaw(p, k, 81, h) +
+          '<g class="kat-kussens" opacity="0">' +
+            '<ellipse cx="81" cy="196" rx="6" ry="4.2" fill="' + k.kussens + '"/>' +
+            '<circle cx="73" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
+            '<circle cx="81" cy="204" r="2.6" fill="' + k.kussens + '"/>' +
+            '<circle cx="89" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
+          '</g>' +
+        '</g>' +
+      '</g>' +
+      '</g>';
   }
   LC.CATS = { pinky: { name: 'Pinky' }, groentje: { name: 'Groentje' } };
   LC.BALLOON_COLORS = ['#ff8fab', '#8ecae6', '#ffd166', '#b5e48c', '#cdb4db', '#ffb4a2'];
@@ -153,6 +396,8 @@
   LC.catSVG = function (key, opts) {
     opts = opts || {};
     var k = FUR[key], p = 'kt' + (catSeq++);
+    // fur density: full for the big cats, lighter for small previews (shop, car, buttons)
+    var h = opts.haren != null ? opts.haren : opts.cls === 'still' ? 0.3 : opts.head ? 0.5 : 1;
     var vb = opts.vb || (opts.head ? '33 -19 234 246' : '0 0 300 345');
     var o = opts.outfit || {}, back = '', onHead = '', front = '';
     ['head', 'face', 'body'].forEach(function (slot) {
@@ -166,9 +411,9 @@
       '<svg class="cat ' + (opts.cls || 'idle') + '" viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       catDefs(p, k) +
       back +
-      '<g class="body-g">' + T + catBody(p, k) + '</g></g>' +
-      '<g class="head-g">' + T + catHead(p, k) + catFace(p, k) + '</g>' + onHead + '</g>' +
-      '<g transform="translate(0 2) scale(1.5)">' + catPaws(p, k) + '</g>' +
+      '<g class="body-g">' + T + catBody(p, k, h) + '</g></g>' +
+      '<g class="head-g">' + T + catHead(p, k, h) + catFace(p, k) + '</g>' + onHead + '</g>' +
+      '<g transform="translate(0 2) scale(1.5)">' + catPaws(p, k, h) + '</g>' +
       front +
       '</svg>';
   };
