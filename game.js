@@ -4,6 +4,7 @@
   var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace' };
   var F = {};
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
+  var FUR_COLORS = { roze: '#ee7fa7', groen: '#6cc276', blauw: '#5aafee', geel: '#f6c766', oranje: '#ff9f43', paars: '#c090e8', regenboog: '#ee7fa7' };
 
   function h(tag, cls, html) {
     var e = document.createElement(tag);
@@ -759,6 +760,7 @@
     renderCurrent(list);
     setMood('idle');
     tracer = new LC.Tracer(T.card, key, store.getStrict(state.profile), {
+      pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
       onSuccess: function () { success(key, mine); },
       onTry: function () { store.record(state.profile, key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
       onHelp: function () { setMood('help'); audio.voiceHelp(); },

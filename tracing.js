@@ -22,7 +22,7 @@
 
   LC.Tracer = function (host, key, strictKey, cb) {
     var g = LC.GLYPHS[key], cfg = STRICT[strictKey] || STRICT.normaal;
-    var svg = mk('svg', { viewBox: g.view.join(' '), overflow: 'visible' }, 'board-svg');
+    var svg = mk('svg', { viewBox: g.view.join(' ') }, 'board-svg');
     var wide = mk('g'), dots = mk('g'), ink = mk('g'), top = mk('g');
     svg.appendChild(wide); svg.appendChild(dots); svg.appendChild(ink); svg.appendChild(top);
     host.appendChild(svg);
@@ -41,24 +41,24 @@
       return { pts: pts, next: 0, cover: cover, done: false };
     });
 
-    // Floating paw that follows the ghost cursor during demo
-    var ARM_COL = '#ffb3c8', ARM_COL2 = '#ff97b8';
-    var armWrist = mk('line', { x1: 0, y1: 0, x2: 0, y2: 0, stroke: ARM_COL, 'stroke-width': '18', 'stroke-linecap': 'round' });
-    var armPaw   = mk('circle', { cx: 0, cy: 0, r: '12', fill: ARM_COL });
-    var armT1    = mk('circle', { cx: -8, cy: 0, r: '5.5', fill: ARM_COL2 });
-    var armT2    = mk('circle', { cx: 0,   cy: 0, r: '5.5', fill: ARM_COL2 });
-    var armT3    = mk('circle', { cx: 8,  cy: 0, r: '5.5', fill: ARM_COL2 });
-    var catArm   = mk('g', { visibility: 'hidden' });
-    catArm.appendChild(armWrist); catArm.appendChild(armPaw);
-    catArm.appendChild(armT1); catArm.appendChild(armT2); catArm.appendChild(armT3);
+    // Floating cat paw that follows the ghost cursor during demo
+    var pawCol = (cb && cb.pawColor) || '#ee7fa7';
+    var pawPad = mk('ellipse', { cx: 0, cy: 0, rx: '13', ry: '11', fill: pawCol, stroke: 'white', 'stroke-width': '2' });
+    var pawT1  = mk('circle', { cx: 0, cy: 0, r: '5', fill: pawCol, stroke: 'white', 'stroke-width': '1.5' });
+    var pawT2  = mk('circle', { cx: 0, cy: 0, r: '5', fill: pawCol, stroke: 'white', 'stroke-width': '1.5' });
+    var pawT3  = mk('circle', { cx: 0, cy: 0, r: '5', fill: pawCol, stroke: 'white', 'stroke-width': '1.5' });
+    var pawT4  = mk('circle', { cx: 0, cy: 0, r: '5', fill: pawCol, stroke: 'white', 'stroke-width': '1.5' });
+    var catArm = mk('g', { visibility: 'hidden' });
+    catArm.appendChild(pawT1); catArm.appendChild(pawT2);
+    catArm.appendChild(pawT3); catArm.appendChild(pawT4);
+    catArm.appendChild(pawPad);
 
     function moveArm(x, y) {
-      armWrist.setAttribute('x1', x); armWrist.setAttribute('y1', y - 30);
-      armWrist.setAttribute('x2', x); armWrist.setAttribute('y2', y - 10);
-      armPaw.setAttribute('cx', x);   armPaw.setAttribute('cy', y);
-      armT1.setAttribute('cx', x - 8); armT1.setAttribute('cy', y - 10);
-      armT2.setAttribute('cx', x);     armT2.setAttribute('cy', y - 14);
-      armT3.setAttribute('cx', x + 8); armT3.setAttribute('cy', y - 10);
+      pawPad.setAttribute('cx', x);       pawPad.setAttribute('cy', y);
+      pawT1.setAttribute('cx', x - 10);  pawT1.setAttribute('cy', y - 12);
+      pawT2.setAttribute('cx', x - 3);   pawT2.setAttribute('cy', y - 16);
+      pawT3.setAttribute('cx', x + 4);   pawT3.setAttribute('cy', y - 16);
+      pawT4.setAttribute('cx', x + 11);  pawT4.setAttribute('cy', y - 12);
     }
 
     var marker = mk('circle', { r: 11, stroke: g.color }, 'marker');
@@ -220,6 +220,9 @@
         }
       }
       var idx = 0, start = performance.now();
+      var q0 = seq[0].p.getPointAtLength(0);
+      moveArm(q0.x, q0.y);
+      ghost.setAttribute('cx', q0.x); ghost.setAttribute('cy', q0.y);
       ghost.setAttribute('visibility', 'visible');
       catArm.setAttribute('visibility', 'visible');
       function frame(now) {
