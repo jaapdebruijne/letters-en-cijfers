@@ -35,9 +35,43 @@
     g.innerHTML = LC.decorMarkup(ids, newId);
   }
 
+  function adaptDifficulty(key) {
+    if (!store.get().settings.adaptive) return;
+    var prof = store.get().profiles[key];
+    var strict = prof.strict || 'normaal';
+    var stats = prof.stats;
+    var baseGlyphs = Object.keys(LC.GLYPHS).filter(function (g) {
+      var cat = LC.categoryOf(g);
+      return cat === 'lower' || cat === 'digit';
+    });
+    var attempted = baseGlyphs.filter(function (g) { return stats[g] && stats[g][0] >= 3; });
+    if (attempted.length < 5) return;
+    var topCount = attempted.filter(function (g) { return stats[g][1] / stats[g][0] >= 0.85; }).length;
+    var topRate = topCount / attempted.length;
+    var base = prof.strictBase || { asked: 0, firstTry: 0 };
+    var totalAsked = baseGlyphs.reduce(function (s, g) { return s + (stats[g] ? stats[g][0] : 0); }, 0);
+    var totalFirst = baseGlyphs.reduce(function (s, g) { return s + (stats[g] ? stats[g][1] : 0); }, 0);
+    var recentAsked = totalAsked - base.asked;
+    var recentFirst = totalFirst - base.firstTry;
+    if (strict !== 'streng' && topRate >= 0.85 && attempted.length >= 10) {
+      var next = strict === 'soepel' ? 'normaal' : 'streng';
+      store.setStrict(key, next);
+      store.setStrictBase(key, { asked: totalAsked, firstTry: totalFirst });
+      if (next === 'streng') store.setCaps(key, true);
+      return;
+    }
+    if (strict !== 'soepel' && recentAsked >= 15 && recentFirst / recentAsked < 0.40) {
+      var prev = strict === 'streng' ? 'normaal' : 'soepel';
+      store.setStrict(key, prev);
+      store.setStrictBase(key, { asked: totalAsked, firstTry: totalFirst });
+      if (prev !== 'streng') store.setCaps(key, false);
+    }
+  }
+
   // A finished game round earns a stamp for that game. Stamps from 3 different games make a bonus
   // ride, so the same easy game over and over gives only one stamp.
   function earnStamp(game, container) {
+    adaptDifficulty(state.profile);
     var r = store.addStamp(state.profile, game);
     if (!container) return;
     var t;
@@ -96,7 +130,7 @@
   // The letters of a child's name (set in the parent panel). Accents are dropped and
   // anything that is not a plain letter (spaces, hyphens) is skipped.
   // Capital letters can be switched off in the parent panel (children learn them later at school).
-  function capsOn() { return store.get().settings.caps; }
+  function capsOn() { return store.getCaps(state.profile || 'speler1'); }
 
   function nameLetters(profile) {
     var raw = store.get().profiles[profile].name || '';
@@ -398,7 +432,7 @@
       var curAge = store.getAge(profileKey);
       [3, 4, 5, 6, 7, 8].forEach(function (age) {
         var ab = h('button', 'ns-agebtn' + (curAge === age ? ' on' : '')); ab.textContent = age;
-        ab.addEventListener('click', function () { store.setAge(profileKey, age); buildNameScreen(); });
+        ab.addEventListener('click', function () { store.setAge(profileKey, age); store.setAgeDefaults(profileKey, age); buildNameScreen(); });
         agePicker.appendChild(ab);
       });
       ageRow.appendChild(agePicker);
@@ -724,7 +758,7 @@
     show('trace');
     renderCurrent(list);
     setMood('idle');
-    tracer = new LC.Tracer(T.card, key, store.get().settings.strict, {
+    tracer = new LC.Tracer(T.card, key, store.getStrict(state.profile), {
       onSuccess: function () { success(key, mine); },
       onTry: function () { store.record(state.profile, key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
       onHelp: function () { setMood('help'); audio.voiceHelp(); },
@@ -1703,12 +1737,18 @@
     var card = h('div', 'mcard panel');
     var title = h('h2'); title.textContent = 'Ouders'; card.appendChild(title);
 
-    card.appendChild(row('Hoe streng nakijken?', seg([['soepel', 'Soepel'], ['normaal', 'Normaal'], ['streng', 'Streng']], d.settings.strict,
-      function (v) { d.settings.strict = v; store.save(); })));
+    var players = store.getPlayers();
+    var pkeys = players === 2 ? ['speler1', 'speler2'] : ['speler1'];
+    pkeys.forEach(function (pk) {
+      var label = players === 2 ? (pk === 'speler1' ? 'Speler 1 — moeilijkheid' : 'Speler 2 — moeilijkheid') : 'Moeilijkheid';
+      card.appendChild(row(label, seg([['soepel', 'Soepel'], ['normaal', 'Normaal'], ['streng', 'Streng']], store.getStrict(pk),
+        function (v) { store.setStrict(pk, v); })));
+      var capsLabel = players === 2 ? (pk === 'speler1' ? 'Speler 1 — hoofdletters' : 'Speler 2 — hoofdletters') : 'Hoofdletters';
+      card.appendChild(row(capsLabel, seg([['aan', 'Aan'], ['uit', 'Uit']], store.getCaps(pk) ? 'aan' : 'uit',
+        function (v) { store.setCaps(pk, v === 'aan'); if (!store.getCaps(pk) && state.profile === pk && state.cat === 'upper') state.cat = 'lower'; })));
+    });
     card.appendChild(row('Muziek', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.music ? 'aan' : 'uit',
       function (v) { d.settings.music = v === 'aan'; store.save(); audio.setMusic(d.settings.music); })));
-    card.appendChild(row('Hoofdletters', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.caps ? 'aan' : 'uit',
-      function (v) { d.settings.caps = v === 'aan'; if (!d.settings.caps && state.cat === 'upper') state.cat = 'lower'; store.save(); })));
     card.appendChild(row('Slim oefenen', seg([['aan', 'Aan'], ['uit', 'Uit']], d.settings.adaptive ? 'aan' : 'uit',
       function (v) { d.settings.adaptive = v === 'aan'; store.save(); })));
     card.appendChild(row('Beurtwissel', seg([['0', 'Uit'], ['5', '5 min'], ['10', '10 min'], ['15', '15 min']], String(d.settings.turnMin),

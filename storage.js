@@ -8,7 +8,7 @@
   var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', age: 0, done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '' };
+    return { name: '', age: 0, done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '', strict: 'normaal', caps: false, strictBase: null };
   }
 
   function fresh() {
@@ -73,6 +73,11 @@
           }
           if (typeof p.fur === 'string' && LC.CATS && LC.CATS[p.fur]) out.fur = p.fur;
           if (isFinite(p.age) && p.age >= 2 && p.age <= 12) out.age = Math.floor(p.age);
+          if (['soepel', 'normaal', 'streng'].indexOf(p.strict) >= 0) out.strict = p.strict;
+          if (typeof p.caps === 'boolean') out.caps = p.caps;
+          if (p.strictBase && isFinite(p.strictBase.asked) && isFinite(p.strictBase.firstTry)) {
+            out.strictBase = { asked: Math.max(0, Math.floor(p.strictBase.asked)), firstTry: Math.max(0, Math.floor(p.strictBase.firstTry)) };
+          }
         });
         var s = raw.settings || {};
         if (['soepel', 'normaal', 'streng'].indexOf(s.strict) >= 0) d.settings.strict = s.strict;
@@ -190,6 +195,18 @@
     setFur: function (profile, furKey) { get().profiles[profile].fur = furKey; save(); },
     getAge: function (profile) { return get().profiles[profile].age || 0; },
     setAge: function (profile, age) { get().profiles[profile].age = age; save(); },
+    getStrict: function (profile) { return get().profiles[profile].strict || 'normaal'; },
+    setStrict: function (profile, val) { get().profiles[profile].strict = val; save(); },
+    getCaps: function (profile) { return !!get().profiles[profile].caps; },
+    setCaps: function (profile, val) { get().profiles[profile].caps = !!val; save(); },
+    setStrictBase: function (profile, base) { get().profiles[profile].strictBase = base; save(); },
+    setAgeDefaults: function (profile, age) {
+      var p = get().profiles[profile];
+      p.strict = age <= 3 ? 'soepel' : 'normaal';
+      p.caps = false;
+      p.strictBase = null;
+      save();
+    },
     getPlayers: function () { return get().settings.players || 1; },
     setPlayers: function (n) { get().settings.players = n; save(); },
     resetProgress: function () {
