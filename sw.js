@@ -1,4 +1,4 @@
-const CACHE = 'lcl-v2';
+const CACHE = 'lcl-v3';
 const CORE = ['./', 'index.html', 'style.css', 'letters.js', 'storage.js', 'art.js', 'shop.js', 'audio.js', 'tracing.js', 'physics.js', 'ride.js', 'game.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
@@ -13,12 +13,13 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Online: always fetch the newest file (and remember it). Offline: use the remembered copy.
+// Online: always ask the server for the newest file (no-cache skips the browser's own 10-minute
+// copy) and remember it. Offline: use the remembered copy.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok && res.status === 200) {
           const copy = res.clone();
