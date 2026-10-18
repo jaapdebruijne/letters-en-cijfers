@@ -144,7 +144,7 @@
       if (inkPoints.length < 5) return 0;
       var allPts = [];
       tracks.forEach(function (t) { allPts = allPts.concat(t.pts); });
-      var strayR2 = Math.pow(Math.max(cfg.r * 2, 30), 2);
+      var strayR2 = Math.pow(cfg.r + 1, 2);
       var far = 0;
       for (var i = 0; i < inkPoints.length; i++) {
         var pt = inkPoints[i], best = Infinity;

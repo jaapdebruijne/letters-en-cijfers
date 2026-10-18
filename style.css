@@ -395,9 +395,9 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .sum { font-size: 7vh; font-weight: 700; }
 .ans { height: 9vh; line-height: 9vh; font-size: 7vh; margin: 1vh auto; width: 24vh; background: #f1ebfa; border-radius: 2vh; }
 .pad { display: grid; grid-template-columns: repeat(3, 13vh); gap: 1.2vh; justify-content: center; margin-bottom: 1.5vh; }
-.key { height: 9vh; font-size: 4.6vh; border-radius: 2vh; background: #ece4f7; }
+.key { height: 9vh; font-size: 4.6vh; border-radius: 2vh; background: #ece4f7; touch-action: manipulation; }
 .key.ok { background: var(--accent); color: #fff; }
-.btn { min-height: 7.5vh; padding: 0 2.4vw; font-size: 3.2vh; border-radius: 2vh; background: #ece4f7; }
+.btn { min-height: 7.5vh; padding: 0 2.4vw; font-size: 3.2vh; border-radius: 2vh; background: #ece4f7; touch-action: manipulation; }
 .btn.primary { background: var(--accent); color: #fff; }
 .btn.warn { background: #ffe1e1; }
 .btn.quiet { background: transparent; text-decoration: underline; }
@@ -407,7 +407,7 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .panel h2 { text-align: center; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 2vw; margin: 1.6vh 0; font-size: 3.4vh; }
 .seg { display: flex; gap: 0.8vw; }
-.seg button { min-height: 7vh; padding: 0 2vw; font-size: 3.2vh; border-radius: 2vh; background: #ece4f7; }
+.seg button { min-height: 7vh; padding: 0 2vw; font-size: 3.2vh; border-radius: 2vh; background: #ece4f7; touch-action: manipulation; }
 .seg button.on { background: var(--accent); color: #fff; }
 .panel input { width: 30vw; font-size: 3.4vh; padding: 1vh 1.2vw; border: 2px solid #cbb8ea; border-radius: 1.6vh; color: var(--ink); background: #fff; }
 .actions { display: flex; gap: 1.5vw; justify-content: center; flex-wrap: wrap; margin-top: 2.4vh; }
