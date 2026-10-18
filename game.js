@@ -84,7 +84,15 @@
     Object.keys(scr).forEach(function (k) { scr[k].classList.toggle('on', k === n); });
     // When the turn is over, change cats at the next calm moment (back at a choice screen).
     if (turn.due && (n === 'games' || n === 'menu')) setTimeout(startSwitch, 350);
+    // The cat on this screen says hello once.
+    var hello = scr[n].querySelector('.games-cat .cat, .menu-cat .cat, .trace-cat .cat, .house-cat .cat');
+    if (hello) setTimeout(function () { if (current === n) LC.catWave(hello); }, 350);
   }
+  // Tapping the cat makes it wave (the house cat hops instead).
+  app.addEventListener('click', function (e) {
+    var c = e.target.closest && e.target.closest('.games-cat .cat, .menu-cat .cat, .trace-cat .cat');
+    if (c) LC.catWave(c);
+  });
 
   // ---------- Taking turns ----------
   // Only real play time counts: not the cat choice, not the parent panel, not a hidden page.
@@ -324,7 +332,7 @@
     var fx = h('div', 'balloons');
     cat.addEventListener('click', function () {
       var c = cat.querySelector('.cat');
-      c.classList.remove('idle'); void c.getBoundingClientRect(); c.classList.add('happy');
+      c.classList.remove('idle', 'zwaait'); void c.getBoundingClientRect(); c.classList.add('happy');
       audio.chime();
       setTimeout(function () { c.classList.remove('happy'); c.classList.add('idle'); }, 1800);
     });
@@ -441,6 +449,7 @@
     if (!c) return;
     clearTimeout(moodTimer);
     c.classList.remove('idle', 'happy', 'oops', 'help');
+    if (m === 'happy') c.classList.remove('zwaait');
     void c.getBoundingClientRect();
     c.classList.add(m);
     if (m === 'oops') moodTimer = setTimeout(function () { setMood('idle'); }, 1300);
