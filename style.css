@@ -337,7 +337,8 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .byetext { font-size: 6vh; font-weight: 700; color: #fff; }
 
 /* parent gate and panel */
-#paw { position: fixed; right: 0; bottom: 0; width: 90px; height: 90px; z-index: 40; opacity: 0.1; padding: 22px; }
+#paw { position: fixed; right: 0; bottom: 0; width: 120px; height: 120px; z-index: 40; opacity: 0.1; padding: 34px; transition: opacity 0.15s; }
+#paw.tapped { opacity: 0.55; }
 #paw svg { width: 100%; height: 100%; }
 .modal { position: fixed; inset: 0; z-index: 50; background: rgba(74, 63, 99, 0.6); display: flex; align-items: center; justify-content: center; touch-action: pan-y; }
 .mcard { background: #fffdf8; border-radius: 36px; padding: 3vh 3vw; max-width: 94vw; max-height: 96vh; overflow: auto; box-shadow: 0 1vh 0 rgba(0, 0, 0, 0.15); text-align: center; }
@@ -350,7 +351,7 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .btn { min-height: 7.5vh; padding: 0 2.4vw; font-size: 3.2vh; border-radius: 2vh; background: #ece4f7; }
 .btn.primary { background: var(--accent); color: #fff; }
 .btn.warn { background: #ffe1e1; }
-.btn.ghost { background: transparent; text-decoration: underline; }
+.btn.quiet { background: transparent; text-decoration: underline; }
 .shake { animation: shake 0.4s; }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-12px); } 75% { transform: translateX(12px); } }
 .panel { width: 76vw; text-align: left; }

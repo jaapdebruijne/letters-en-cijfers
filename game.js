@@ -1457,7 +1457,7 @@
     var sum = h('div', 'sum'); sum.textContent = a + ' + ' + b + ' = ?'; card.appendChild(sum);
     var ans = h('div', 'ans'); card.appendChild(ans);
     var pad = h('div', 'pad'); card.appendChild(pad);
-    var back = h('button', 'btn ghost'); back.textContent = 'Terug'; card.appendChild(back);
+    var back = h('button', 'btn quiet'); back.textContent = 'Terug'; card.appendChild(back);
     back.addEventListener('click', closeAndResume);
 
     function refresh() { ans.textContent = val || ' '; }
@@ -1678,9 +1678,12 @@
   var taps = [];
   paw.addEventListener('click', function () {
     var now = Date.now();
-    taps = taps.filter(function (t) { return now - t < 3000; });
+    taps = taps.filter(function (t) { return now - t < 5000; });
     taps.push(now);
-    if (taps.length >= 5) { taps = []; openGate(); }
+    // a little sign that the tap counted, so a parent can see it is working
+    paw.classList.add('tapped');
+    setTimeout(function () { paw.classList.remove('tapped'); }, 450);
+    if (taps.length >= 5) { taps = []; paw.classList.remove('tapped'); openGate(); }
   });
 
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
