@@ -129,10 +129,13 @@
       var dx = p[0] - last[0], dy = p[1] - last[1], dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < 0.8) return;
       var steps = Math.ceil(dist / 5);
-      for (var i = 1; i <= steps; i++) hit([last[0] + dx * i / steps, last[1] + dy * i / steps]);
+      for (var i = 1; i <= steps; i++) {
+        var ip = [last[0] + dx * i / steps, last[1] + dy * i / steps];
+        hit(ip);
+        inkSample++;
+        if (inkSample % 3 === 0 && inkPoints.length < 500) inkPoints.push(ip);
+      }
       inkLen += dist;
-      inkSample++;
-      if (inkSample % 4 === 0 && inkPoints.length < 400) inkPoints.push([p[0], p[1]]);
       curD += ' L ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
       if (cur) cur.setAttribute('d', curD);
       last = p;
