@@ -30,11 +30,20 @@
       { id: 'horse', cost: 15, name: 'Houten paard' },
       { id: 'train', cost: 18, name: 'Treintje' },
       { id: 'rainbow', cost: 25, name: 'Regenboog' }
+    ],
+    kleuren: [
+      { id: 'fur-roze',      slot: 'fur', cost: 200, name: 'Roze',      fur: 'roze' },
+      { id: 'fur-groen',     slot: 'fur', cost: 200, name: 'Groen',     fur: 'groen' },
+      { id: 'fur-blauw',     slot: 'fur', cost: 200, name: 'Blauw',     fur: 'blauw' },
+      { id: 'fur-geel',      slot: 'fur', cost: 200, name: 'Geel',      fur: 'geel' },
+      { id: 'fur-oranje',    slot: 'fur', cost: 200, name: 'Oranje',    fur: 'oranje' },
+      { id: 'fur-paars',     slot: 'fur', cost: 200, name: 'Paars',     fur: 'paars' },
+      { id: 'fur-regenboog', slot: 'fur', cost: 500, name: 'Regenboog', fur: 'regenboog' }
     ]
   };
 
   LC.shopItem = function (id) {
-    var all = LC.SHOP.avatar.concat(LC.SHOP.car, LC.SHOP.room);
+    var all = LC.SHOP.avatar.concat(LC.SHOP.car, LC.SHOP.room, LC.SHOP.kleuren);
     for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
     return null;
   };

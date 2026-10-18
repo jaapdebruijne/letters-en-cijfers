@@ -2,9 +2,9 @@
   'use strict';
   var LC = (window.LC = window.LC || {});
 
-  // Soft-3D cat colours. Light is always at the top left; Pinky has peach cheeks and lilac pads.
+  // Soft-3D cat colours. Light is always at the top left.
   var FUR = {
-    pinky: {
+    roze: {
       furLicht: '#FFE4EE', fur: '#F5AFC8', furSchaduw: '#D97399',
       armLicht: '#FFDDE9', armSchaduw: '#DE7FA4', diep: '#B9587F',
       buik: ['#FFFFFF', '#FFEAF1', '#F6CADB'],
@@ -12,13 +12,53 @@
       oorRand1: '#F0A6C1', oorRand2: '#E596B5', binnenoorRand: '#F7B9CF',
       blos: '#FF9A76', blosDekking: '0.7', kussens: '#B68AD9'
     },
-    groentje: {
+    groen: {
       furLicht: '#E4F7DC', fur: '#AEDEA5', furSchaduw: '#70B46C',
       armLicht: '#DDF4D4', armSchaduw: '#78BC74', diep: '#4E9550',
       buik: ['#FFFFFF', '#EFF9EB', '#CAE8C3'],
       iris: ['#FFF0C2', '#F6C766', '#D4923A'],
       oorRand1: '#A6DA9D', oorRand2: '#93CC8C', binnenoorRand: '#F3BFCB',
       blos: '#F4A7A0', blosDekking: '0.6', kussens: '#F3A9BB'
+    },
+    blauw: {
+      furLicht: '#DCF0FF', fur: '#89C4F0', furSchaduw: '#4A8FC4',
+      armLicht: '#D0E8FF', armSchaduw: '#5A9FD4', diep: '#2F6FA0',
+      buik: ['#FFFFFF', '#EAF4FF', '#C3DFFA'],
+      iris: ['#FFF0C2', '#F6C766', '#D4923A'],
+      oorRand1: '#7BBEE8', oorRand2: '#6AAED8', binnenoorRand: '#F3BFCB',
+      blos: '#FF9A76', blosDekking: '0.6', kussens: '#B68AD9'
+    },
+    geel: {
+      furLicht: '#FFFADC', fur: '#FFE066', furSchaduw: '#E0B800',
+      armLicht: '#FFF5C0', armSchaduw: '#EACC00', diep: '#B89000',
+      buik: ['#FFFFFF', '#FEFAE8', '#FFF0A0'],
+      iris: ['#D2EBFF', '#8DC2F0', '#4F86C6'],
+      oorRand1: '#FFD84D', oorRand2: '#FFCA2A', binnenoorRand: '#F7D8B0',
+      blos: '#FF9A76', blosDekking: '0.6', kussens: '#E8A0D0'
+    },
+    oranje: {
+      furLicht: '#FFEEDD', fur: '#FFB060', furSchaduw: '#E07A20',
+      armLicht: '#FFE4C0', armSchaduw: '#EE8A30', diep: '#C06010',
+      buik: ['#FFFFFF', '#FFF2E6', '#FFD9B0'],
+      iris: ['#D2EBFF', '#8DC2F0', '#4F86C6'],
+      oorRand1: '#FFA050', oorRand2: '#FF9040', binnenoorRand: '#FFC0A8',
+      blos: '#FF6B6B', blosDekking: '0.6', kussens: '#CC88CC'
+    },
+    paars: {
+      furLicht: '#F0E8FF', fur: '#C090E8', furSchaduw: '#8050B8',
+      armLicht: '#EAD8FF', armSchaduw: '#9060C8', diep: '#603898',
+      buik: ['#FFFFFF', '#F0E4FF', '#DBBAF5'],
+      iris: ['#FFF0C2', '#F6C766', '#D4923A'],
+      oorRand1: '#B880E0', oorRand2: '#A870D0', binnenoorRand: '#F3C0D8',
+      blos: '#FF9A76', blosDekking: '0.6', kussens: '#FFB4D0'
+    },
+    regenboog: {
+      furLicht: '#FFE4EE', fur: '#F5AFC8', furSchaduw: '#D97399',
+      armLicht: '#FFDDE9', armSchaduw: '#DE7FA4', diep: '#B9587F',
+      buik: ['#FFFFFF', '#FFEAF1', '#F6CADB'],
+      iris: ['#D2EBFF', '#8DC2F0', '#4F86C6'],
+      oorRand1: '#F0A6C1', oorRand2: '#E596B5', binnenoorRand: '#F7B9CF',
+      blos: '#FF9A76', blosDekking: '0.7', kussens: '#B68AD9'
     }
   };
   var catSeq = 0;   // every cat drawing gets its own gradient ids
@@ -132,7 +172,15 @@
       '<circle cx="89" cy="201" r="2.6" fill="' + k.kussens + '"/>' +
       '</g></g></g></g>';
   }
-  LC.CATS = { pinky: { name: 'Pinky' }, groentje: { name: 'Groentje' } };
+  LC.CATS = {
+    roze:      { name: 'Roze' },
+    groen:     { name: 'Groen' },
+    blauw:     { name: 'Blauw' },
+    geel:      { name: 'Geel' },
+    oranje:    { name: 'Oranje' },
+    paars:     { name: 'Paars' },
+    regenboog: { name: 'Regenboog', special: true }
+  };
   LC.BALLOON_COLORS = ['#ff8fab', '#8ecae6', '#ffd166', '#b5e48c', '#cdb4db', '#ffb4a2'];
 
 
@@ -237,10 +285,11 @@
     var d = DECOR[id];
     return '<svg class="gp" viewBox="' + d.vb + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + d.svg + '</svg>';
   };
-  LC.accessoryPreview = function (key, id) {
+  LC.accessoryPreview = function (profileKey, id) {
     var a = LC.shopItem(id), o = {};
     o[a.slot] = id;
-    return LC.catSVG(key, { head: true, cls: 'still', vb: a.slot === 'body' ? '20 -4 260 354' : '40 -66 220 252', outfit: o });
+    var furKey = LC.carFurKey(profileKey);
+    return LC.catSVG(furKey, { head: true, cls: 'still', vb: a.slot === 'body' ? '20 -4 260 354' : '40 -66 220 252', outfit: o });
   };
 
   LC.balloonSVG = function (color) {
@@ -469,7 +518,8 @@
   // Everything the ride (and the shop pictures) need for one vehicle.
   LC.vehicleDef = function (id, key) {
     var v = VEH[id] || VEH[''];
-    var inner = v.body(LC.CAR[key]);
+    var furKey = LC.carFurKey(key);
+    var inner = v.body(LC.CAR[furKey] || LC.CAR.roze);
     return {
       id: id || '', vb: v.vb, wheels: v.wheels, head: v.head, stats: v.stats, inner: inner,
       bodySvg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + v.vb[2] + '" height="' + v.vb[3] + '" viewBox="' + v.vb.join(' ') + '">' + inner + '</svg>'
@@ -490,8 +540,24 @@
       cat + d.inner + wheels + '</svg>';
   };
 
-  // The bonus car: body colours per cat, and a small icon of it.
-  LC.CAR = { pinky: { body: '#ff6f91', dark: '#d94b72' }, groentje: { body: '#4cc26b', dark: '#2f9a50' } };
+  // The bonus car: body colours per fur colour.
+  LC.CAR = {
+    roze:      { body: '#ff6f91', dark: '#d94b72' },
+    groen:     { body: '#4cc26b', dark: '#2f9a50' },
+    blauw:     { body: '#4d96ff', dark: '#2a6dcc' },
+    geel:      { body: '#ffd23f', dark: '#d4a800' },
+    oranje:    { body: '#ff9f43', dark: '#d97216' },
+    paars:     { body: '#b070d8', dark: '#7a3eb0' },
+    regenboog: { body: '#ff6f91', dark: '#d94b72' }
+  };
+
+  // vehicleDef and carPreview accept either a fur key OR (legacy) a profile key;
+  // the caller in game.js passes a profile key, so we resolve via LC.store when available.
+  LC.carFurKey = function (key) {
+    if (LC.CAR[key]) return key;
+    if (window.LC && LC.store) return LC.store.getFur(key);
+    return 'roze';
+  };
 
   LC.carIconSVG = function () {
     return '<svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +

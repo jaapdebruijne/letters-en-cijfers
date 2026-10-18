@@ -2,19 +2,19 @@
   'use strict';
   var LC = (window.LC = window.LC || {});
   var KEY = 'lcl.v1';
-  var PROFILES = ['pinky', 'groentje'];
+  var PROFILES = ['speler1', 'speler2'];
   var SLOTS = ['head', 'face', 'body', 'car'];
   var GAMES = ['trace', 'find', 'pop', 'count', 'math'];
   var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' } };
+    return { name: '', done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '' };
   }
 
   function fresh() {
     return {
-      profiles: { pinky: freshProfile(), groentje: freshProfile() },
-      settings: { strict: 'normaal', music: true, turnMin: 10, adaptive: true, caps: true }
+      profiles: { speler1: freshProfile(), speler2: freshProfile() },
+      settings: { strict: 'normaal', music: true, turnMin: 10, adaptive: true, caps: true, players: 1 }
     };
   }
 
@@ -71,6 +71,7 @@
               if (it && it.slot === s && out.owned.indexOf(id) >= 0) out.avatar[s] = id;
             });
           }
+          if (typeof p.fur === 'string' && LC.CATS && LC.CATS[p.fur]) out.fur = p.fur;
         });
         var s = raw.settings || {};
         if (['soepel', 'normaal', 'streng'].indexOf(s.strict) >= 0) d.settings.strict = s.strict;
@@ -78,6 +79,7 @@
         if ([0, 5, 10, 15].indexOf(s.turnMin) >= 0) d.settings.turnMin = s.turnMin;
         if (typeof s.adaptive === 'boolean') d.settings.adaptive = s.adaptive;
         if (typeof s.caps === 'boolean') d.settings.caps = s.caps;
+        if ([1, 2].indexOf(s.players) >= 0) d.settings.players = s.players;
       }
     } catch (e) { /* fall back to defaults */ }
     return d;
@@ -183,10 +185,15 @@
       p.avatar[slot] = id || '';
       save();
     },
+    getFur: function (profile) { return get().profiles[profile].fur || 'roze'; },
+    setFur: function (profile, furKey) { get().profiles[profile].fur = furKey; save(); },
+    getPlayers: function () { return get().settings.players || 1; },
+    setPlayers: function (n) { get().settings.players = n; save(); },
     resetProgress: function () {
       PROFILES.forEach(function (k) {
         var p = get().profiles[k];
-        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' };
+        var fur = p.fur;
+        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' }; p.fur = fur;
       });
       save();
     }

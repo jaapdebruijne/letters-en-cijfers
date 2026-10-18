@@ -11,14 +11,18 @@
     if (html != null) e.innerHTML = html;
     return e;
   }
-  function other(key) { return key === 'pinky' ? 'groentje' : 'pinky'; }
+  function other(key) { return key === 'speler1' ? 'speler2' : 'speler1'; }
 
   // A cat wearing whatever its child has put on in the shop.
   function catFor(key, opts) {
     var o = {};
     for (var k in (opts || {})) o[k] = opts[k];
     o.outfit = store.get().profiles[key].avatar;
-    return LC.catSVG(key, o);
+    var fur = store.getFur(key);
+    if (fur === 'regenboog') {
+      o.cls = (o.cls ? o.cls + ' ' : '') + 'regenboog';
+    }
+    return LC.catSVG(fur, o);
   }
 
   // The doll house things a child has bought appear in the room behind every screen.
@@ -157,7 +161,8 @@
       document.body.appendChild(ringEl);
     }
     var left = Math.max(0, 1 - turn.ms / (min * 60000));
-    ringArc.setAttribute('stroke', left < 0.2 ? '#ff9f43' : state.profile === 'pinky' ? '#ee7fa7' : '#6cc276');
+    var furColors = { roze: '#ee7fa7', groen: '#6cc276', blauw: '#5aafee', geel: '#f6c766', oranje: '#ff9f43', paars: '#c090e8', regenboog: '#ee7fa7' };
+    ringArc.setAttribute('stroke', left < 0.2 ? '#ff9f43' : (furColors[store.getFur(state.profile)] || '#ee7fa7'));
     ringArc.setAttribute('stroke-dashoffset', (RING_LEN * (1 - left)).toFixed(1));
     ringEl.classList.remove('off');
   }
@@ -235,14 +240,16 @@
     var s = scr.switch;
     s.textContent = '';
     s.appendChild(h('div', 'swicon', LC.swapSVG()));
+    var fromName = store.get().profiles[from].name || (from === 'speler1' ? 'Speler 1' : 'Speler 2');
     var sl = h('div', 'sleeper', catFor(from, { cls: 'sleep' }));
     var zz = h('div', 'zzz'); zz.textContent = 'zzz'; sl.appendChild(zz);
-    var sn = h('div', 'sleepname'); sn.textContent = LC.CATS[from].name; sl.appendChild(sn);
+    var sn = h('div', 'sleepname'); sn.textContent = fromName; sl.appendChild(sn);
     s.appendChild(sl);
 
     var wrap = h('div', 'pwrap swwrap');
     var card = h('button', 'pcard swcard pc-' + to, catFor(to, { cls: 'happy' }));
-    var nm = h('div', 'pname'); nm.textContent = LC.CATS[to].name; card.appendChild(nm);
+    var toName = store.get().profiles[to].name || (to === 'speler1' ? 'Speler 1' : 'Speler 2');
+    var nm = h('div', 'pname'); nm.textContent = toName; card.appendChild(nm);
     var kid = store.get().profiles[to].name;
     var line = h('div', 'kname'); line.textContent = kid ? kid + ', jouw beurt!' : 'Jouw beurt!'; card.appendChild(line);
     card.addEventListener('click', function () { pickProfile(to); });
@@ -251,21 +258,90 @@
   }
 
   // ---------- Who is playing ----------
+  // Returns a player card (cat + name) for the profile screen. Used for 1- and 2-player layout.
+  function makeProfileCard(key) {
+    var d = store.get();
+    var fur = store.getFur(key);
+    var furCls = fur === 'regenboog' ? 'regenboog' : '';
+    var b = h('button', 'pcard pc-' + key, catFor(key, {}));
+    var nm = h('div', 'pname');
+    nm.textContent = d.profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
+    b.appendChild(nm);
+    b.addEventListener('click', function () { pickProfile(key); });
+    return b;
+  }
+
   function buildProfile() {
     var s = scr.profile;
     s.textContent = '';
     state.profile = null;
     renderDecor();
+
+    var d = store.get();
+    var players = store.getPlayers();
+
+    // First visit: no fur chosen yet for speler1 → go to color picker
+    if (!d.profiles.speler1.fur) {
+      buildColorPicker();
+      return;
+    }
+
     var wrap = h('div', 'pwrap');
-    ['pinky', 'groentje'].forEach(function (key) {
-      var b = h('button', 'pcard pc-' + key, catFor(key, {}));
-      var nm = h('div', 'pname'); nm.textContent = LC.CATS[key].name; b.appendChild(nm);
-      var kid = store.get().profiles[key].name;
-      if (kid) { var k = h('div', 'kname'); k.textContent = kid; b.appendChild(k); }
-      b.addEventListener('click', function () { pickProfile(key); });
-      wrap.appendChild(b);
+    var profileKeys = players === 1 ? ['speler1'] : ['speler1', 'speler2'];
+    profileKeys.forEach(function (key) {
+      wrap.appendChild(makeProfileCard(key));
     });
     s.appendChild(wrap);
+  }
+
+  // First-time (and settings-accessible) color + player count setup screen.
+  function buildColorPicker() {
+    var s = scr.profile;
+    s.textContent = '';
+
+    var d = store.get();
+    var furKeys = ['roze', 'groen', 'blauw', 'geel', 'oranje', 'paars'];
+    var players = store.getPlayers();
+
+    // Player count toggle at the top
+    var ptoggle = h('div', 'ptoggle');
+    var p1btn = h('button', 'ptogbtn' + (players === 1 ? ' on' : ''), '1 speler');
+    var p2btn = h('button', 'ptogbtn' + (players === 2 ? ' on' : ''), '2 spelers');
+    p1btn.addEventListener('click', function () { store.setPlayers(1); buildColorPicker(); });
+    p2btn.addEventListener('click', function () { store.setPlayers(2); buildColorPicker(); });
+    ptoggle.appendChild(p1btn); ptoggle.appendChild(p2btn);
+    s.appendChild(ptoggle);
+
+    var profileKeys = players === 1 ? ['speler1'] : ['speler1', 'speler2'];
+
+    profileKeys.forEach(function (profileKey) {
+      var sec = h('div', 'colorsec');
+      var lbl = h('div', 'colorlbl');
+      lbl.textContent = profileKey === 'speler1' ? (players === 1 ? 'Kies je poes' : 'Speler 1') : 'Speler 2';
+      sec.appendChild(lbl);
+
+      var grid = h('div', 'colorgrid');
+      furKeys.forEach(function (fur) {
+        var curFur = store.getFur(profileKey) || 'roze';
+        var btn = h('button', 'coloropt' + (fur === curFur ? ' on' : ''),
+          LC.catSVG(fur, { head: true, cls: 'idle' }));
+        var lname = h('span', 'colname'); lname.textContent = LC.CATS[fur].name; btn.appendChild(lname);
+        btn.addEventListener('click', function () { store.setFur(profileKey, fur); buildColorPicker(); });
+        grid.appendChild(btn);
+      });
+      sec.appendChild(grid);
+      s.appendChild(sec);
+    });
+
+    var done = h('button', 'btn primary bigbtn');
+    done.textContent = 'Klaar!';
+    done.addEventListener('click', function () {
+      // Ensure each active player has a fur color chosen (default to roze).
+      var activeKeys = store.getPlayers() === 1 ? ['speler1'] : ['speler1', 'speler2'];
+      activeKeys.forEach(function (pk) { if (!store.get().profiles[pk].fur) store.setFur(pk, 'roze'); });
+      buildProfile(); show('profile');
+    });
+    s.appendChild(done);
   }
 
   function pickProfile(key) {
@@ -289,12 +365,17 @@
   function buildGames() {
     var s = scr.games, key = state.profile;
     s.textContent = '';
-    var sw = h('button', 'switch', catFor(other(key), { head: true }));
-    sw.addEventListener('click', function () { buildProfile(); show('profile'); });
-    s.appendChild(sw);
+    var players = store.getPlayers();
+    // Only show the switch button in 2-player mode
+    if (players === 2) {
+      var sw = h('button', 'switch', catFor(other(key), { head: true }));
+      sw.addEventListener('click', function () { buildProfile(); show('profile'); });
+      s.appendChild(sw);
+    }
 
     var mc = h('div', 'games-cat', catFor(key, {}));
-    var nm = h('div', 'pname'); nm.textContent = LC.CATS[key].name; mc.appendChild(nm);
+    var playerName = store.get().profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
+    var nm = h('div', 'pname'); nm.textContent = playerName; mc.appendChild(nm);
     var kid = store.get().profiles[key].name;
     if (kid) { var kn = h('div', 'kname'); kn.textContent = kid; mc.appendChild(kn); }
     s.appendChild(mc);
@@ -349,7 +430,7 @@
     var fx = h('div', 'balloons');
 
     var tabs = h('div', 'shoptabs');
-    [['avatar', catFor(key, { head: true })], ['car', LC.carIconSVG()], ['room', LC.homeSVG()]].forEach(function (t) {
+    [['avatar', catFor(key, { head: true })], ['car', LC.carIconSVG()], ['room', LC.homeSVG()], ['kleuren', '🎨']].forEach(function (t) {
       var b = h('button', 'shoptab' + (t[0] === shopTab ? ' on' : ''), t[1]);
       b.addEventListener('click', function () { shopTab = t[0]; buildShop(); });
       tabs.appendChild(b);
@@ -358,11 +439,19 @@
     var grid = h('div', 'shopgrid ' + shopTab);
     LC.SHOP[shopTab].forEach(function (it) {
       var owned = store.owns(key, it.id);
-      var equipped = !!it.slot && st.avatar[it.slot] === it.id;
-      var card = h('button', 'scard' + (owned ? ' owned' : '') + (equipped ? ' on' : ''),
-        shopTab === 'avatar' ? LC.accessoryPreview(key, it.id)
-          : shopTab === 'car' ? LC.carPreview(it.id, key, st.avatar)
-          : LC.decorPreview(it.id));
+      var curFur = store.getFur(key);
+      var equipped = it.slot === 'fur' ? curFur === it.fur : (!!it.slot && st.avatar[it.slot] === it.id);
+      var preview;
+      if (shopTab === 'kleuren') {
+        preview = LC.catSVG(it.fur, { head: true, cls: 'idle' });
+      } else if (shopTab === 'avatar') {
+        preview = LC.accessoryPreview(key, it.id);
+      } else if (shopTab === 'car') {
+        preview = LC.carPreview(it.id, key, st.avatar);
+      } else {
+        preview = LC.decorPreview(it.id);
+      }
+      var card = h('button', 'scard' + (owned ? ' owned' : '') + (equipped ? ' on' : ''), preview);
       var chip = h('div', 'chip' + (owned ? ' got' : ''));
       chip.textContent = owned ? (it.slot ? (equipped ? 'Aan' : 'Uit') : '✓') : '★ ' + it.cost;
       card.appendChild(chip);
@@ -376,7 +465,11 @@
   function shopItemTap(it, card, fx) {
     var key = state.profile;
     if (store.owns(key, it.id)) {
-      if (it.slot) {
+      if (it.slot === 'fur') {
+        store.setFur(key, it.fur);
+        audio.pop();
+        buildShop();
+      } else if (it.slot) {
         var cur = store.get().profiles[key].avatar[it.slot];
         store.equip(key, it.slot, cur === it.id ? '' : it.id);
         audio.pop();
@@ -390,6 +483,7 @@
     }
     if (store.buy(key, it.id)) {
       audio.chime();
+      if (it.slot === 'fur') { store.setFur(key, it.fur); buildShop(); burst(scr.shop.querySelector('.balloons')); return; }
       if (!it.slot) { openHouse(it.id); return; }
       buildShop();
       burst(scr.shop.querySelector('.balloons'));
@@ -444,7 +538,7 @@
     s.appendChild(badge);
 
     var mc = h('div', 'menu-cat', catFor(key, {}));
-    var nm = h('div', 'pname'); nm.textContent = LC.CATS[key].name; mc.appendChild(nm);
+    var nm = h('div', 'pname'); nm.textContent = prof.name || (key === 'speler1' ? 'Speler 1' : 'Speler 2'); mc.appendChild(nm);
     if (prof.name) { var kn = h('div', 'kname'); kn.textContent = prof.name; mc.appendChild(kn); }
     s.appendChild(mc);
 
@@ -1416,7 +1510,7 @@
   function buildBye() {
     var s = scr.bye;
     s.textContent = '';
-    var w = h('div', 'byewrap', catFor(state.profile || 'pinky', { cls: 'sleep' }));
+    var w = h('div', 'byewrap', catFor(state.profile || 'speler1', { cls: 'sleep' }));
     var t = h('div', 'byetext'); t.textContent = 'Tot ziens! zzz';
     w.appendChild(t);
     s.appendChild(w);
@@ -1549,12 +1643,17 @@
       function (v) { d.settings.adaptive = v === 'aan'; store.save(); })));
     card.appendChild(row('Beurtwissel', seg([['0', 'Uit'], ['5', '5 min'], ['10', '10 min'], ['15', '15 min']], String(d.settings.turnMin),
       function (v) { d.settings.turnMin = +v; store.save(); turnReset(); })));
-    card.appendChild(row('Naam bij Pinky', nameInput('pinky')));
-    card.appendChild(row('Naam bij Groentje', nameInput('groentje')));
+    card.appendChild(row('Aantal spelers', seg([['1', '1'], ['2', '2']], String(store.getPlayers()),
+      function (v) { store.setPlayers(+v); openParent(); })));
+    card.appendChild(row('Naam bij Speler 1', nameInput('speler1')));
+    if (store.getPlayers() === 2) card.appendChild(row('Naam bij Speler 2', nameInput('speler2')));
+    var colorBtn = h('button', 'btn'); colorBtn.textContent = 'Kleur poes wijzigen';
+    colorBtn.addEventListener('click', function () { closeModal(); buildColorPicker(); show('profile'); });
+    card.appendChild(row('Poes kleur', colorBtn));
 
     var actions = h('div', 'actions');
     var prog = h('button', 'btn'); prog.textContent = 'Voortgang bekijken';
-    prog.addEventListener('click', function () { openProgress(state.profile || 'pinky'); });
+    prog.addEventListener('click', function () { openProgress(state.profile || 'speler1'); });
     var reset = h('button', 'btn warn'); reset.textContent = 'Voortgang wissen';
     var armed = false;
     reset.addEventListener('click', function () {
@@ -1618,9 +1717,11 @@
     var title = h('h2'); title.textContent = 'Voortgang'; card.appendChild(title);
 
     var tabs = h('div', 'ptabs');
-    ['pinky', 'groentje'].forEach(function (k) {
+    var progressKeys = store.getPlayers() === 1 ? ['speler1'] : ['speler1', 'speler2'];
+    progressKeys.forEach(function (k) {
       var b = h('button', 'ptab' + (k === which ? ' on' : ''), catFor(k, { head: true }));
-      var n = h('span'); n.textContent = LC.CATS[k].name + (d.profiles[k].name ? ' (' + d.profiles[k].name + ')' : '');
+      var displayName = d.profiles[k].name || (k === 'speler1' ? 'Speler 1' : 'Speler 2');
+      var n = h('span'); n.textContent = displayName;
       b.appendChild(n);
       b.addEventListener('click', function () { openProgress(k); });
       tabs.appendChild(b);
