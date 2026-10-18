@@ -150,7 +150,9 @@
     }
 
     function win() {
-      if (cellCoverage() > 0.40) {
+      var cc = cellCoverage();
+      var inkRatio = totalLen > 0 ? inkLen / totalLen : 0;
+      if (cc > 0.35 || inkRatio > 4.0) {
         tries++;
         clearInk();
         resetTracks();
