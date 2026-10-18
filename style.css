@@ -74,8 +74,8 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 /* game choice */
 .games-cat { position: absolute; left: 1.5vw; bottom: 4vh; width: 19vw; text-align: center; }
 .games-cat .cat { height: 46vh; margin: 0 auto; }
-.gcards { position: absolute; left: 25vw; right: 2vw; top: 50%; transform: translateY(-50%); display: flex; gap: 2vw; justify-content: center; }
-.gcard { width: 13.4vw; height: 68vh; border-radius: 6vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
+.gcards { position: absolute; left: 25vw; right: 2vw; top: 50%; transform: translateY(-50%); display: flex; flex-wrap: wrap; gap: 2.4vh 2vw; justify-content: center; }
+.gcard { width: 21vw; height: 34vh; border-radius: 4.5vh; border: 1vh solid #fff; box-shadow: 0 1.6vh 0 rgba(90, 60, 140, 0.22);
   overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding-bottom: 2.2vh;
   animation: wiggle 3.6s ease-in-out infinite; transition: transform 0.12s; }
 .gcard:active { transform: scale(0.95); animation: none; }
