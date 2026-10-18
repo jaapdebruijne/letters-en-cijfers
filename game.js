@@ -122,6 +122,7 @@
     Object.keys(scr).forEach(function (k) { scr[k].classList.toggle('on', k === n); });
     // When the turn is over, change cats at the next calm moment (back at a choice screen).
     if (turn.due && (n === 'games' || n === 'menu')) setTimeout(startSwitch, 350);
+    updateRing();
     // The cat on this screen says hello once.
     var hello = scr[n].querySelector('.games-cat .cat, .menu-cat .cat, .trace-cat .cat, .house-cat .cat');
     if (hello) setTimeout(function () { if (current === n) LC.catWave(hello); }, 350);
@@ -143,6 +144,23 @@
     document.body.appendChild(timeupEl);
     audio.chime();
   }
+  // A round timer (like the kids know from screen time) shows how much of the turn is left.
+  var ringEl = null, ringArc = null, RING_LEN = 2 * Math.PI * 40;
+  function updateRing() {
+    var min = store.get().settings.turnMin;
+    var on = state.profile && min && !turn.due && current !== 'profile' && current !== 'switch' && current !== 'bye';
+    if (!on) { if (ringEl) ringEl.classList.add('off'); return; }
+    if (!ringEl) {
+      ringEl = h('div', 'turnring', '<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="40" fill="none" stroke="#ece4f7" stroke-width="14"/>' +
+        '<circle class="arc" cx="50" cy="50" r="40" fill="none" stroke-width="14" stroke-linecap="round" transform="rotate(-90 50 50)" stroke-dasharray="' + RING_LEN.toFixed(1) + '"/></svg>');
+      ringArc = ringEl.querySelector('.arc');
+      document.body.appendChild(ringEl);
+    }
+    var left = Math.max(0, 1 - turn.ms / (min * 60000));
+    ringArc.setAttribute('stroke', left < 0.2 ? '#ff9f43' : state.profile === 'pinky' ? '#ee7fa7' : '#6cc276');
+    ringArc.setAttribute('stroke-dashoffset', (RING_LEN * (1 - left)).toFixed(1));
+    ringEl.classList.remove('off');
+  }
   function removeTimeup() {
     if (timeupEl && timeupEl.parentNode) timeupEl.parentNode.removeChild(timeupEl);
     timeupEl = null;
@@ -158,6 +176,7 @@
     turn.ms = 0; turn.due = false; turn.grace = 0;
     removeTimeup();
     clearTurn();
+    updateRing();
   }
   function turnResume(key) {
     var v = null;
@@ -165,6 +184,7 @@
     if (v && v.p === key && Date.now() - v.at < 20 * 60000 && v.ms >= 0 && v.grace >= 0) {
       turn.ms = v.ms; turn.due = !!v.due; turn.grace = v.grace;
       if (turn.due) showTimeup();
+      updateRing();
     } else turnReset();
   }
   function turnTick(dt) {
@@ -175,6 +195,7 @@
     if (!turn.due) {
       turn.ms += dt;
       if (turn.ms >= min * 60000) { turn.due = true; showTimeup(); }
+      updateRing();
     } else {
       turn.grace += dt;
       if (turn.grace >= 75000) { startSwitch(); return; }
