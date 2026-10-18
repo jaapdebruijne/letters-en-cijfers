@@ -46,7 +46,7 @@
     top.appendChild(marker); top.appendChild(ghost);
 
     var active = null, last = null, cur = null, curD = '', inkLen = 0;
-    var inkPoints = [], inkSample = 0;
+    var inkCells = {};
     var locked = false, solved = false, dead = false, tries = 0;
     var attemptT = 0, helpT = 0, raf = 0;
 
@@ -71,7 +71,7 @@
       var old = Array.prototype.slice.call(ink.childNodes);
       old.forEach(function (n) { n.setAttribute('class', 'ink fading'); });
       setTimeout(function () { old.forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); }); }, 450);
-      inkLen = 0; cur = null; curD = ''; inkPoints = []; inkSample = 0;
+      inkLen = 0; cur = null; curD = ''; inkCells = {};
     }
 
     function local(e) {
@@ -132,8 +132,7 @@
       for (var i = 1; i <= steps; i++) {
         var ip = [last[0] + dx * i / steps, last[1] + dy * i / steps];
         hit(ip);
-        inkSample++;
-        if (inkSample % 3 === 0 && inkPoints.length < 500) inkPoints.push(ip);
+        inkCells[Math.floor(ip[0] / 10) + ',' + Math.floor(ip[1] / 10)] = 1;
       }
       inkLen += dist;
       curD += ' L ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
@@ -141,28 +140,17 @@
       last = p;
     }
 
-    // What fraction of drawn ink points are farther than 2× the tolerance radius from any guide point?
-    // A correct trace is near the path throughout; a scribble wanders far from it.
-    function strayFraction() {
-      if (inkPoints.length < 5) return 0;
-      var allPts = [];
-      tracks.forEach(function (t) { allPts = allPts.concat(t.pts); });
-      var strayR2 = Math.pow(cfg.r + 1, 2);
-      var far = 0;
-      for (var i = 0; i < inkPoints.length; i++) {
-        var pt = inkPoints[i], best = Infinity;
-        for (var j = 0; j < allPts.length; j++) {
-          var dx = allPts[j][0] - pt[0], dy = allPts[j][1] - pt[1];
-          var d2 = dx * dx + dy * dy;
-          if (d2 < best) best = d2;
-        }
-        if (best > strayR2) far++;
-      }
-      return far / inkPoints.length;
+    // What fraction of 10×10-unit canvas cells contain ink?
+    // Correct trace: cells along the letter only (~15–30%). Scribble: most cells (>40%).
+    function cellCoverage() {
+      var n = Object.keys(inkCells).length;
+      if (n < 4) return 0;
+      var totalCells = Math.ceil(g.view[2] / 10) * Math.ceil(g.view[3] / 10);
+      return n / totalCells;
     }
 
     function win() {
-      if (strayFraction() > 0.40) {
+      if (cellCoverage() > 0.40) {
         tries++;
         clearInk();
         resetTracks();
