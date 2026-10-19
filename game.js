@@ -315,10 +315,22 @@
     var d = store.get();
     var players = store.getPlayers();
 
-    // First visit: no fur chosen yet for speler1 → go to color picker
+    // First visit: no fur chosen yet for speler1 → welcome screen then color picker
     if (!d.profiles.speler1.fur) {
-      audio.voiceWelcome();
-      buildColorPicker();
+      var ws = h('div', 'pwrap');
+      var wc = h('div', 'pcard');
+      wc.innerHTML = LC.catSVG('roze', {});
+      wc.querySelector('.cat').classList.add('still');
+      var wb = h('button', 'cp-done');
+      wb.textContent = 'Begin! →';
+      wb.addEventListener('click', function () {
+        audio.unlock();
+        audio.voiceWelcome();
+        buildColorPicker();
+      });
+      wc.appendChild(wb);
+      ws.appendChild(wc);
+      s.appendChild(ws);
       return;
     }
 
