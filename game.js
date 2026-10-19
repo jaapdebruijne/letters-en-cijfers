@@ -317,6 +317,7 @@
 
     // First visit: no fur chosen yet for speler1 → go to color picker
     if (!d.profiles.speler1.fur) {
+      audio.voiceWelcome();
       buildColorPicker();
       return;
     }
@@ -465,7 +466,6 @@
     buildMath();
     buildGames();
     show('games');
-    audio.voiceWelcome();
   }
 
   // ---------- Which game? ----------
