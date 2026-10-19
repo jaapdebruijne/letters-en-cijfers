@@ -233,10 +233,13 @@
     voiceMath: function (type) { return playVoice('audio/phrases/' + (type === 'meer' ? 'meer' : 'erbij') + '.mp3'); },
     voiceSwitch: function () { return playVoice('audio/phrases/wissel.mp3'); },
     voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
-    // Phonetic letter sound (klankzuiver) via TTS; falls back to mp3 if available.
+    // Phonetic letter sound (klankzuiver): mp3 first, TTS as fallback.
     speakPhonetic: function (letter) {
       var lk = letter.toLowerCase();
-      return tts(PHONETICS[lk] || lk);
+      return playVoice('audio/letters/' + lk + '-fo.mp3').then(function (heard) {
+        if (heard) return;
+        return tts(PHONETICS[lk] || lk);
+      });
     },
     // "Doe mij maar na": plays mp3 if recorded, otherwise TTS.
     voiceDemoIntro: function () {
