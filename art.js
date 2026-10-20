@@ -443,7 +443,7 @@
 
   LC.catSVG = function (key, opts) {
     opts = opts || {};
-    var k = FUR[key], p = 'kt' + (catSeq++);
+    var k = FUR[key] || FUR[LC.carFurKey(key)] || FUR.roze, p = 'kt' + (catSeq++);
     // fur density: full for the big cats, lighter for small previews (shop, car, buttons)
     var h = opts.haren != null ? opts.haren : opts.cls === 'still' ? 0.3 : opts.head ? 0.5 : 1;
     var vb = opts.vb || (opts.head ? '33 -19 234 246' : '0 0 300 345');
