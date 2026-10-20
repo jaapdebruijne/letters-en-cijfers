@@ -288,11 +288,6 @@
     function up(e) {
       if (e.pointerId !== active) return;
       active = null; last = null;
-      if (level >= 4 && inkLen > 0 && !solved && !locked) {
-        solved = true; locked = true;
-        if (cb && cb.onLevel4Done) cb.onLevel4Done();
-        return;
-      }
       if (!solved && !locked) attemptT = setTimeout(endAttempt, 1500);
     }
     svg.addEventListener('pointerup', up);

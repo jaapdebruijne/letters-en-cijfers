@@ -851,7 +851,7 @@
       pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
       level: level,
       onSuccess: function () { success(key, mine, batchMode); },
-      onTry: function () { store.record(state.profile, effectiveKey, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
+      onTry: function () { store.record(state.profile, effectiveKey, 'tryfail'); store.traceResult(state.profile, effectiveKey, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
       onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
       onHelpDone: function () { setMood('idle'); },
       onLevel4Done: function () { level4Done(key, mine, batchMode); }
@@ -905,7 +905,7 @@
           pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
           level: level1,
           onSuccess: function () { success(key, mine, batchMode); },
-          onTry: function () { store.record(state.profile, part1Key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
+          onTry: function () { store.record(state.profile, part1Key, 'tryfail'); store.traceResult(state.profile, part1Key, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
           onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
           onHelpDone: function () { setMood('idle'); },
           onLevel4Done: function () { level4Done(key, mine, batchMode); }
