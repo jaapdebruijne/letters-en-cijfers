@@ -15,7 +15,8 @@
 
   // Level-4 recognition thresholds (normalized 200-unit space)
   var REC_THRESHOLD = 45;   // max avg Hausdorff-like distance
-  var HIST_THRESHOLD = 0.40; // max L1 distance between 4×4 spatial histograms (0=identical, 2=disjoint)
+  var HIST_BINS = 3;         // grid resolution for spatial histogram check
+  var HIST_THRESHOLD = 0.55; // max L1 distance between HIST_BINS² histograms (0=identical, 2=disjoint)
 
   function mk(tag, attrs, cls) {
     var e = document.createElementNS(NS, tag);
@@ -168,7 +169,7 @@
       if (recDrawn.length < 15) { clearInk(); recDrawn = []; recStrokeCount = 0; return; }
       var nd = recNorm(recDrawn);
       var score = recScore(nd, recTemplate);
-      var hist = recHistScore(nd, recTemplate, 4);
+      var hist = recHistScore(nd, recTemplate, HIST_BINS);
       if (score < REC_THRESHOLD && hist < HIST_THRESHOLD) {
         solved = true; locked = true;
         clearTimeout(attemptT);
