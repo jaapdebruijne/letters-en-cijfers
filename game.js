@@ -703,9 +703,9 @@
 
     var grid = h('div', 'kern-grid');
     LC.KERNS.forEach(function (kern) {
-      var purchased = LC.kernPurchased(key, kern.id);
+      var purchased = LC.kernPurchased(kern.id);
       var reachable = LC.kernReachable(key, kern.id);
-      var cls = 'kern-card ' + (purchased ? 'open' : reachable ? 'notyet' : 'locked');
+      var cls = 'kern-card ' + (reachable ? 'open' : purchased ? 'notyet' : 'locked');
       var card = h('div', cls);
       var lbl = h('div', 'kern-label'); lbl.textContent = kern.label; card.appendChild(lbl);
       var tiles = h('div', 'kern-tiles');
@@ -826,7 +826,7 @@
       level: level,
       onSuccess: function () { success(key, mine, batchMode); },
       onTry: function () { store.record(state.profile, effectiveKey, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
-      onHelp: function () { setMood('help'); audio.voiceHelp(); },
+      onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
       onHelpDone: function () { setMood('idle'); },
       onLevel4Done: function () { level4Done(key, mine, batchMode); }
     });
@@ -880,7 +880,7 @@
           level: level1,
           onSuccess: function () { success(key, mine, batchMode); },
           onTry: function () { store.record(state.profile, part1Key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
-          onHelp: function () { setMood('help'); audio.voiceHelp(); },
+          onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
           onHelpDone: function () { setMood('idle'); },
           onLevel4Done: function () { level4Done(key, mine, batchMode); }
         });
@@ -1016,12 +1016,9 @@
 
   function speakTarget(ctx) {
     if (!ctx.target) return;
-    var gen = ctx.gen;
-    audio.voiceLetter(LC.GLYPHS[ctx.target].sound).then(function (heard) {
-      if (gen !== ctx.gen) return;
-      // With no recording yet the cat shows the letter in a speech bubble instead.
-      ctx.bubble.innerHTML = heard ? '' : LC.glyphSVG(ctx.target, { sw: 16 });
-      ctx.bubble.classList.toggle('on', !heard);
+    audio.speakPhonetic(LC.GLYPHS[ctx.target].sound).then(function () {
+      ctx.bubble.innerHTML = '';
+      ctx.bubble.classList.remove('on');
     });
   }
   function sayTarget() { speakTarget(F); }
