@@ -143,11 +143,23 @@
     }
     return out;
   }
+  // Numbers are a free extra tile next to the kerns: always open, not part of the mastery chain.
+  var DIGIT_KERN = { id: 'cijfers', label: 'Cijfers', letters: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'] };
+  function allKerns() { return LC.KERNS.concat([DIGIT_KERN]); }
   function kernLetters(kernId) {
-    for (var i = 0; i < LC.KERNS.length; i++) { if (LC.KERNS[i].id === kernId) return LC.KERNS[i].letters.slice(); }
+    var all = allKerns();
+    for (var i = 0; i < all.length; i++) { if (all[i].id === kernId) return all[i].letters.slice(); }
     return [];
   }
   function availablePool() { return LC.availableLetters(state.profile); }
+  // Zoeken and Prikken also use numbers: 1-5 from the start, 6-0 once 1-5 are all mastered.
+  function digitPool() {
+    var d = ['1', '2', '3', '4', '5'];
+    var ok = d.every(function (k) { return LC.masteryOf(state.profile, k) === 'good'; });
+    return ok ? d.concat(['6', '7', '8', '9', '0']) : d;
+  }
+  function gamePool() { return availablePool().concat(digitPool()); }
+  function sameKind(a, b) { return (LC.categoryOf(a) === 'digit') === (LC.categoryOf(b) === 'digit'); }
   function listFor() { return kernLetters(state.kern); }
 
   var app = document.getElementById('app');
@@ -664,7 +676,7 @@
     var nm = h('div', 'pname');
     nm.textContent = store.get().profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
     mc.appendChild(nm); s.appendChild(mc);
-    var pool = availablePool();
+    var pool = state.game === 'trace' ? availablePool() : gamePool();
     if (state.game === 'trace') {
       var play = h('button', 'playbig', LC.playSVG());
       play.addEventListener('click', function () { startTraceBatch(pool); });
@@ -700,7 +712,7 @@
 
     if (state.game !== 'trace') {
       var play = h('button', 'playbig', LC.playSVG());
-      play.addEventListener('click', function () { (state.game === 'pop' ? startPop : startFind)(availablePool()); });
+      play.addEventListener('click', function () { (state.game === 'pop' ? startPop : startFind)(gamePool()); });
       s.appendChild(play);
       return;
     }
@@ -709,15 +721,16 @@
       buildLetterPicker(s, key);
     } else {
       var grid = h('div', 'kern-pick-wrap');
-      LC.KERNS.forEach(function (kern, i) {
-        var purchased = LC.kernPurchased(kern.id);
-        var reachable = LC.kernReachable(key, kern.id);
+      allKerns().forEach(function (kern, i) {
+        var isDig = kern.id === DIGIT_KERN.id;
+        var purchased = isDig || LC.kernPurchased(kern.id);
+        var reachable = isDig || LC.kernReachable(key, kern.id);
         var tile = h('div', 'kern-big-tile' + (reachable ? ' open' : purchased ? ' notyet' : ' locked'));
         tile.style.background = KERN_COLORS[i % KERN_COLORS.length];
         var lbl = h('div', 'kern-big-lbl'); lbl.textContent = kern.label; tile.appendChild(lbl);
         var letters = h('div', 'kern-big-letters');
         kern.letters.slice(0, 4).forEach(function (lk) {
-          var sp = h('span', 'kern-big-letter'); sp.innerHTML = LC.glyphSVG(lk, { sw: 14, color: '#fff' }); letters.appendChild(sp);
+          var sp = h('span', 'kern-big-letter'); sp.innerHTML = LC.glyphSVG(lk, { sw: 14, color: '#4a3f63' }); letters.appendChild(sp);
         });
         tile.appendChild(letters);
         if (!purchased) { var lck = h('span', 'kern-big-lock'); lck.innerHTML = LC.lockSVG(); tile.appendChild(lck); }
@@ -735,7 +748,7 @@
   }
 
   function buildLetterPicker(s, key) {
-    var kern = LC.KERNS.find(function (k) { return k.id === state.openKern; });
+    var kern = allKerns().find(function (k) { return k.id === state.openKern; });
     if (!kern) { state.openKern = null; buildKernChoice(); return; }
     var topRow = h('div', 'letter-pick-top');
     var backBtn = h('button', 'btn-back-kern'); backBtn.textContent = '← ' + kern.label;
@@ -1071,7 +1084,7 @@
 
   function startFind(pool) {
     var wasBatch = !state.firstBatchDone;
-    if (!pool || !pool.length) pool = availablePool();
+    if (!pool || !pool.length) pool = gamePool();
     if (!pool.length) pool = LC.KERNS[0].letters.slice();
     F.kind = 'kern'; F.pool = pool; F.n = 0; F.target = null; F.first = 0; F.used = {}; F._wasBatch = wasBatch;
     show('find');
@@ -1080,7 +1093,7 @@
 
   function speakTarget(ctx) {
     if (!ctx.target) return;
-    audio.speakPhonetic(LC.GLYPHS[ctx.target].sound).then(function () {
+    (LC.categoryOf(ctx.target) === 'digit' ? audio.voiceLetter(LC.GLYPHS[ctx.target].sound) : audio.speakPhonetic(LC.GLYPHS[ctx.target].sound)).then(function () {
       ctx.bubble.innerHTML = '';
       ctx.bubble.classList.remove('on');
     });
@@ -1096,7 +1109,8 @@
 
     var target = pickTarget(F.pool, F.target, F.used);
     F.used[target] = 1;
-    var others = shuffle(F.pool.filter(function (k) { return k !== target && !lookalike(k, target); }));
+    var others = shuffle(F.pool.filter(function (k) { return k !== target && !lookalike(k, target) && sameKind(k, target); }));
+    if (others.length < 2) others = shuffle(F.pool.filter(function (k) { return k !== target && !lookalike(k, target); }));
     if (others.length < 2) others = shuffle(F.pool.filter(function (k) { return k !== target; }));
     var options = shuffle([target].concat(others.slice(0, 2)));
     F.target = target;
@@ -1192,7 +1206,7 @@
 
   function startPop(pool) {
     var wasBatch = !state.firstBatchDone;
-    if (!pool || !pool.length) pool = availablePool();
+    if (!pool || !pool.length) pool = gamePool();
     if (!pool.length) pool = LC.KERNS[0].letters.slice();
     leavePop();
     G.kind = 'kern'; G.pool = pool; G.n = 0; G.target = null; G.firstTry = 0; G.used = {}; G._wasBatch = wasBatch;
@@ -1212,7 +1226,8 @@
 
   function distractor() {
     var t = G.target;
-    var opts = G.pool.filter(function (k) { return k !== t && !lookalike(k, t); });
+    var opts = G.pool.filter(function (k) { return k !== t && !lookalike(k, t) && sameKind(k, t); });
+    if (opts.length < 2) opts = G.pool.filter(function (k) { return k !== t && !lookalike(k, t); });
     if (!opts.length) opts = G.pool.filter(function (k) { return k !== t; });
     return opts[Math.floor(Math.random() * opts.length)];
   }
@@ -1856,8 +1871,8 @@
     closeModal();
     if (current === 'math') startMath();
     else if (current === 'count') startCount();
-    else if (current === 'pop') startPop(G.pool && G.pool.length ? G.pool : availablePool());
-    else if (current === 'find') startFind(F.pool && F.pool.length ? F.pool : availablePool());
+    else if (current === 'pop') startPop(G.pool && G.pool.length ? G.pool : gamePool());
+    else if (current === 'find') startFind(F.pool && F.pool.length ? F.pool : gamePool());
     else if (current === 'trace' && state.glyph) openTrace(state.pos, !!(state.traceBatch && !state.firstBatchDone));
     else if (current === 'games') buildGames();
     else if (current === 'shop') buildShop();
