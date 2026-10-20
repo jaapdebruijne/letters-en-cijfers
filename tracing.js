@@ -13,9 +13,9 @@
   };
   var SLACK = 10;
 
-  // Level-4 recognition: maximum average Hausdorff-like distance (normalized 200-unit space)
-  // that a drawing may deviate from the template and still be accepted.
-  var REC_THRESHOLD = 45;
+  // Level-4 recognition thresholds (normalized 200-unit space)
+  var REC_THRESHOLD = 45;   // max avg Hausdorff-like distance
+  var HIST_THRESHOLD = 0.40; // max L1 distance between 4×4 spatial histograms (0=identical, 2=disjoint)
 
   function mk(tag, attrs, cls) {
     var e = document.createElementNS(NS, tag);
@@ -135,6 +135,29 @@
         return sum / x.length;
       }
       return Math.max(avgNN(a, b), avgNN(b, a));
+    }
+
+    // Spatial histogram check: divide the 200-unit space into bins×bins cells,
+    // compare point density per cell (L1 distance between normalized histograms).
+    // Catches mirror images and reflections that fool the NN distance check.
+    function recHistScore(a, b, bins) {
+      function hist(pts) {
+        var h = [], i;
+        for (i = 0; i < bins * bins; i++) h.push(0);
+        for (i = 0; i < pts.length; i++) {
+          var xi = Math.min(bins - 1, Math.max(0, Math.floor((pts[i][0] + 100) / 200 * bins)));
+          var yi = Math.min(bins - 1, Math.max(0, Math.floor((pts[i][1] + 100) / 200 * bins)));
+          h[yi * bins + xi]++;
+        }
+        var sum = 0;
+        for (i = 0; i < h.length; i++) sum += h[i];
+        sum = sum || 1;
+        for (i = 0; i < h.length; i++) h[i] /= sum;
+        return h;
+      }
+      var ha = hist(a), hb = hist(b), diff = 0;
+      for (var i = 0; i < ha.length; i++) diff += Math.abs(ha[i] - hb[i]);
+      return diff;
     }
 
     // ---- End shape recognizer helpers ----
@@ -267,7 +290,8 @@
         if (recDrawn.length >= 15) {
           var nd = recNorm(recDrawn);
           var score = recScore(nd, recTemplate);
-          if (score < REC_THRESHOLD) {
+          var hist = recHistScore(nd, recTemplate, 4);
+          if (score < REC_THRESHOLD && hist < HIST_THRESHOLD) {
             solved = true; locked = true;
             clearTimeout(attemptT);
             svg.setAttribute('class', 'board-svg solved');
