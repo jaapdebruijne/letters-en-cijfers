@@ -846,8 +846,28 @@
     renderCurrent();
     setMood('idle');
 
+    // For digraphs: split the board card into two side-by-side halves so both letters are visible
+    T.card.innerHTML = '';
+    var tracerHost;
+    if (g && g.parts) {
+      T.card.className = 'board-card board-card--digraph';
+      var leftHalf = h('div', 'digraph-half digraph-active');
+      var rightHalf = h('div', 'digraph-half digraph-waiting');
+      var prevSvg = LC.glyphSVG(g.parts[1], { sw: 10 });
+      rightHalf.innerHTML = prevSvg.replace('<svg class="glyph"', '<svg class="glyph digraph-preview"');
+      T.card.appendChild(leftHalf);
+      T.card.appendChild(rightHalf);
+      T.digraphLeft = leftHalf;
+      T.digraphRight = rightHalf;
+      tracerHost = leftHalf;
+    } else {
+      T.card.className = 'board-card';
+      T.digraphLeft = null; T.digraphRight = null;
+      tracerHost = T.card;
+    }
+
     var level = store.getTraceLevel(state.profile, effectiveKey);
-    tracer = new LC.Tracer(T.card, effectiveKey, store.getStrict(state.profile), {
+    tracer = new LC.Tracer(tracerHost, effectiveKey, store.getStrict(state.profile), {
       pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
       level: level,
       onSuccess: function () { success(key, mine, batchMode); },
@@ -901,15 +921,32 @@
       advanceTimer = setTimeout(function () {
         if (mine !== token) return;
         if (tracer) { tracer.destroy(); tracer = null; }
-        tracer = new LC.Tracer(T.card, part1Key, store.getStrict(state.profile), {
-          pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
-          level: level1,
-          onSuccess: function () { success(key, mine, batchMode); },
-          onTry: function () { store.record(state.profile, part1Key, 'tryfail'); store.traceResult(state.profile, part1Key, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
-          onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
-          onHelpDone: function () { setMood('idle'); },
-          onLevel4Done: function () { level4Done(key, mine, batchMode); }
-        });
+        // Swap halves: left shows done part 0, right becomes active tracer host
+        if (T.digraphLeft && T.digraphRight) {
+          T.digraphLeft.className = 'digraph-half digraph-done';
+          T.digraphLeft.innerHTML = LC.glyphSVG(g.parts[0], { sw: 10 }).replace('<svg class="glyph"', '<svg class="digraph-preview"');
+          T.digraphRight.innerHTML = '';
+          T.digraphRight.className = 'digraph-half digraph-active';
+          tracer = new LC.Tracer(T.digraphRight, part1Key, store.getStrict(state.profile), {
+            pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
+            level: level1,
+            onSuccess: function () { success(key, mine, batchMode); },
+            onTry: function () { store.record(state.profile, part1Key, 'tryfail'); store.traceResult(state.profile, part1Key, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
+            onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
+            onHelpDone: function () { setMood('idle'); },
+            onLevel4Done: function () { level4Done(key, mine, batchMode); }
+          });
+        } else {
+          tracer = new LC.Tracer(T.card, part1Key, store.getStrict(state.profile), {
+            pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
+            level: level1,
+            onSuccess: function () { success(key, mine, batchMode); },
+            onTry: function () { store.record(state.profile, part1Key, 'tryfail'); store.traceResult(state.profile, part1Key, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
+            onHelp: function () { setMood('help'); audio.voiceDemoIntro(); },
+            onHelpDone: function () { setMood('idle'); },
+            onLevel4Done: function () { level4Done(key, mine, batchMode); }
+          });
+        }
       }, 1200);
       return;
     }

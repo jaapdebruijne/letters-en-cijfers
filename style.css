@@ -180,6 +180,12 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .trace-cat .cat { height: 46vh; margin: 0 auto; }
 .board-card { position: absolute; left: 62%; top: 3vh; transform: translateX(-50%); height: 72vh; width: min(60vh, 48vw);
   background: rgba(255, 255, 255, 0.9); border-radius: 5vh; box-shadow: 0 1.2vh 0 rgba(120, 90, 160, 0.14); padding: 2vh; }
+.board-card--digraph { display: flex; flex-direction: row; gap: 1.5vh; }
+.digraph-half { flex: 1; min-width: 0; height: 100%; position: relative; }
+.digraph-half.digraph-waiting { opacity: 0.22; pointer-events: none; }
+.digraph-half.digraph-done { opacity: 0.38; pointer-events: none; }
+.digraph-half .board-svg { width: 100%; height: 100%; display: block; touch-action: none; }
+.digraph-half .digraph-preview { width: 100%; height: 100%; display: block; }
 .board-svg { width: 100%; height: 100%; display: block; touch-action: none; }
 .guide-wide { fill: none; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; opacity: 0.2; transition: opacity 0.5s; }
 .guide-dots { fill: none; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 11; transition: opacity 0.4s; }
