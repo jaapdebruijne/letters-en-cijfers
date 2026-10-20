@@ -32,7 +32,7 @@
     var tracks = g.strokes.map(function (d) {
       if (level <= 2) wide.appendChild(mk('path', { d: d, stroke: g.color }, 'guide-wide'));
       var p = mk('path', { d: d, stroke: g.color }, 'guide-dots');
-      if (level <= 2) {
+      if (level <= 3) {
         dots.appendChild(p);
       } else {
         // Temporarily add to SVG to compute length, then remove
@@ -42,7 +42,7 @@
       totalLen += len;
       var n = Math.max(4, Math.round(len / 10)), pts = [];
       for (var i = 0; i <= n; i++) { var q = p.getPointAtLength(len * i / n); pts.push([q.x, q.y]); }
-      if (level >= 3 && p.parentNode === svg) svg.removeChild(p);
+      if (level >= 4 && p.parentNode === svg) svg.removeChild(p);
       var cover = [];
       for (var c = 0; c < pts.length; c++) cover.push(Infinity);
       return { pts: pts, next: 0, cover: cover, done: false };
@@ -79,6 +79,7 @@
     var attemptT = 0, helpT = 0, raf = 0;
 
     function placeMarker() {
+      if (level >= 4) { marker.setAttribute('visibility', 'hidden'); return; }
       var t = null;
       for (var i = 0; i < tracks.length; i++) if (!tracks[i].done) { t = tracks[i]; break; }
       if (!t) { marker.setAttribute('visibility', 'hidden'); return; }

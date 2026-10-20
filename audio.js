@@ -186,7 +186,7 @@
 
   var PHONETICS = {
     a: 'aaa', b: 'b', c: 'k', d: 'd', e: 'eee', f: 'fff',
-    g: 'ggg', h: 'hhh', i: 'iii', j: 'j', k: 'k', l: 'lll',
+    g: 'ggg', h: 'hhh', i: 'ie', j: 'j', k: 'k', l: 'lll',
     m: 'mmm', n: 'nnn', o: 'ooo', p: 'p', q: 'kw', r: 'rrr',
     s: 'sss', t: 't', u: 'uuu', v: 'vvv', w: 'ww', x: 'ks',
     y: 'ij', z: 'zzz'
