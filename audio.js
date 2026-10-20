@@ -128,6 +128,21 @@
   // ---- Voice clips: audio/letters/*.mp3 and audio/phrases/*.mp3 ----
   var clips = {}, curVoice = null, seq = 0;
 
+  var TTS_TEXTS = {
+    'aa': 'aa', 'ee': 'ee', 'oo': 'oo', 'oe': 'oe', 'ij': 'ij',
+    'eu': 'eu', 'ie': 'ie', 'ou': 'ou', 'uu': 'uu', 'au': 'au', 'ui': 'ui', 'ei': 'ei',
+    'kern-locked': 'Deze letters kun je nog niet oefenen. Vraag papa of mama als je deze letters wil oefenen.',
+    'kern-notyet': 'Deze letters kun je nog niet oefenen. Oefen de andere letters eerst nog een beetje meer.'
+  };
+
+  function speakTTS(text) {
+    if (!window.speechSynthesis) return;
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'nl-NL'; u.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+  }
+
   function clipUrl(path) {
     if (!clips[path]) {
       clips[path] = fetch(path)
@@ -186,7 +201,11 @@
     stopVoice();
     var mine = seq;
     return clipUrl(path).then(function (u) {
-      if (!u) return false;
+      if (!u) {
+        var ttsKey = path.replace(/^audio\/letters\//, '').replace(/^audio\/phrases\//, '').replace(/\.mp3$/, '');
+        if (TTS_TEXTS[ttsKey]) speakTTS(TTS_TEXTS[ttsKey]);
+        return false;
+      }
       if (mine !== seq) return true;
       var a = new Audio(u);
       curVoice = a;
@@ -233,6 +252,7 @@
     voiceMath: function (type) { return playVoice('audio/phrases/' + (type === 'meer' ? 'meer' : 'erbij') + '.mp3'); },
     voiceSwitch: function () { return playVoice('audio/phrases/wissel.mp3'); },
     voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
+    voiceTTS: function (key) { if (TTS_TEXTS[key]) speakTTS(TTS_TEXTS[key]); },
     // Phonetic letter sound (klankzuiver): mp3 first, TTS as fallback.
     speakPhonetic: function (letter) {
       var lk = letter.toLowerCase();

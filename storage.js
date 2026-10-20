@@ -1,14 +1,14 @@
 (function () {
   'use strict';
   var LC = (window.LC = window.LC || {});
-  var KEY = 'lcl.v1';
+  var KEY = 'lcl.v2';
   var PROFILES = ['speler1', 'speler2'];
   var SLOTS = ['head', 'face', 'body', 'car'];
   var GAMES = ['trace', 'find', 'pop', 'count', 'math'];
   var data = null, dirty = false;
 
   function freshProfile() {
-    return { name: '', age: 0, done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '', strict: 'normaal', caps: false, strictBase: null };
+    return { name: '', age: 0, done: {}, stats: {}, time: {}, mathMax: 5, stars: 0, tickets: 0, stamps: [], walk: {}, owned: [], avatar: { head: '', face: '', body: '', car: '' }, fur: '', strict: 'normaal', caps: false, strictBase: null, recent: {}, traceLevel: {}, traceStreak: {}, traceHist: {}, masteryThreshold: 4 };
   }
 
   function fresh() {
@@ -71,6 +71,34 @@
               if (it && it.slot === s && out.owned.indexOf(id) >= 0) out.avatar[s] = id;
             });
           }
+          if (p.recent && typeof p.recent === 'object') {
+            Object.keys(p.recent).forEach(function (g) {
+              var arr = p.recent[g];
+              if (LC.GLYPHS[g] && Array.isArray(arr)) {
+                out.recent[g] = arr.filter(function (v) { return v === 0 || v === 1; }).slice(-5);
+              }
+            });
+          }
+          if (p.traceLevel && typeof p.traceLevel === 'object') {
+            Object.keys(p.traceLevel).forEach(function (g) {
+              var v = p.traceLevel[g];
+              if (LC.GLYPHS[g] && v >= 1 && v <= 4) out.traceLevel[g] = Math.floor(v);
+            });
+          }
+          if (p.traceStreak && typeof p.traceStreak === 'object') {
+            Object.keys(p.traceStreak).forEach(function (g) {
+              if (LC.GLYPHS[g] && isFinite(p.traceStreak[g])) out.traceStreak[g] = Math.max(0, Math.floor(p.traceStreak[g]));
+            });
+          }
+          if (p.traceHist && typeof p.traceHist === 'object') {
+            Object.keys(p.traceHist).forEach(function (g) {
+              var arr = p.traceHist[g];
+              if (LC.GLYPHS[g] && Array.isArray(arr)) {
+                out.traceHist[g] = arr.filter(function (v) { return v === 0 || v === 1; }).slice(-4);
+              }
+            });
+          }
+          if (p.masteryThreshold >= 3 && p.masteryThreshold <= 5) out.masteryThreshold = Math.floor(p.masteryThreshold);
           if (typeof p.fur === 'string' && LC.CATS && LC.CATS[p.fur]) out.fur = p.fur;
           if (isFinite(p.age) && p.age >= 2 && p.age <= 12) out.age = Math.floor(p.age);
           if (['soepel', 'normaal', 'streng'].indexOf(p.strict) >= 0) out.strict = p.strict;
@@ -200,6 +228,45 @@
     getCaps: function (profile) { return !!get().profiles[profile].caps; },
     setCaps: function (profile, val) { get().profiles[profile].caps = !!val; save(); },
     setStrictBase: function (profile, base) { get().profiles[profile].strictBase = base; save(); },
+    recordFirst: function (profile, key, correct) {
+      if (!LC.GLYPHS[key]) return;
+      var p = get().profiles[profile];
+      var arr = p.recent[key] || (p.recent[key] = []);
+      arr.push(correct ? 1 : 0);
+      if (arr.length > 5) p.recent[key] = arr.slice(arr.length - 5);
+      save();
+    },
+    getTraceLevel: function (profile, key) {
+      return get().profiles[profile].traceLevel[key] || 1;
+    },
+    traceResult: function (profile, key, clean) {
+      var p = get().profiles[profile];
+      var streak = p.traceStreak[key] || 0;
+      var hist = p.traceHist[key] || [];
+      hist.push(clean ? 1 : 0);
+      if (hist.length > 4) hist = hist.slice(hist.length - 4);
+      p.traceHist[key] = hist;
+      var level = p.traceLevel[key] || 1;
+      if (clean) {
+        streak++;
+        if (streak >= 3 && level < 4) { level++; streak = 0; }
+      } else {
+        streak = 0;
+        var fails = hist.filter(function (v) { return !v; }).length;
+        if (hist.length >= 4 && fails >= 3 && level > 1) { level--; }
+      }
+      p.traceStreak[key] = streak;
+      p.traceLevel[key] = level;
+      save();
+      return level;
+    },
+    getMasteryThreshold: function (profile) {
+      return get().profiles[profile].masteryThreshold !== undefined ? get().profiles[profile].masteryThreshold : 4;
+    },
+    setMasteryThreshold: function (profile, n) {
+      get().profiles[profile].masteryThreshold = Math.max(3, Math.min(5, n));
+      save();
+    },
     setAgeDefaults: function (profile, age) {
       var p = get().profiles[profile];
       p.strict = age <= 3 ? 'soepel' : 'normaal';
@@ -213,7 +280,7 @@
       PROFILES.forEach(function (k) {
         var p = get().profiles[k];
         var fur = p.fur;
-        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' }; p.fur = fur;
+        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' }; p.fur = fur; p.recent = {}; p.traceLevel = {}; p.traceStreak = {}; p.traceHist = {}; p.masteryThreshold = 4;
       });
       save();
     }

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var LC = window.LC, store = LC.store, audio = LC.audio;
-  var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace' };
+  var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace', kern: 'start', firstBatchDone: false, digraphKey: null, digraphPart: 0, traceBatch: null };
   var F = {};
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
   var FUR_COLORS = { roze: '#ee7fa7', groen: '#6cc276', blauw: '#5aafee', geel: '#f6c766', oranje: '#ff9f43', paars: '#c090e8', regenboog: '#ee7fa7' };
@@ -143,10 +143,12 @@
     }
     return out;
   }
-  function listFor(cat) {
-    if (cat === 'upper' && !capsOn()) cat = 'lower';
-    return cat === 'name' ? nameLetters(state.profile) : LC.CATEGORIES[cat];
+  function kernLetters(kernId) {
+    for (var i = 0; i < LC.KERNS.length; i++) { if (LC.KERNS[i].id === kernId) return LC.KERNS[i].letters.slice(); }
+    return [];
   }
+  function availablePool() { return LC.availableLetters(state.profile); }
+  function listFor() { return kernLetters(state.kern); }
 
   var app = document.getElementById('app');
   app.appendChild(h('div', 'bg', LC.sceneSVG()));
@@ -526,7 +528,7 @@
       c.addEventListener('click', function () {
         if (g[0] === 'count') { buildCount(); startCount(); return; }
         if (g[0] === 'math') { buildMath(); startMath(); return; }
-        state.game = g[0]; buildMenu(); show('menu');
+        state.game = g[0]; state.firstBatchDone = false; buildMenu(); show('menu');
       });
       row.appendChild(c);
     });
@@ -635,10 +637,10 @@
 
   // ---------- Letter and number choice ----------
   function buildMenu() {
-    var s = scr.menu, key = state.profile, prof = store.get().profiles[key];
-    s.textContent = '';
-    // The game screens draw their own cat, so redraw them to show the current outfit.
-    buildTrace(); buildFind(); buildPop(); buildCount(); buildMath();
+    if (!state.firstBatchDone) { buildStartScreen(); } else { buildKernChoice(); }
+  }
+
+  function menuSky(s, key) {
     var sky = h('div', 'sky');
     var n = Math.min(10, store.total(key));
     for (var i = 0; i < n; i++) {
@@ -648,55 +650,81 @@
       sky.appendChild(b);
     }
     s.appendChild(sky);
+  }
 
+  function buildStartScreen() {
+    var s = scr.menu, key = state.profile;
+    s.textContent = '';
+    buildTrace(); buildFind(); buildPop(); buildCount(); buildMath();
+    menuSky(s, key);
+    var back = h('button', 'home', LC.homeSVG());
+    back.addEventListener('click', function () { buildGames(); show('games'); audio.voiceChoose(); });
+    s.appendChild(back);
+    var mc = h('div', 'menu-cat', catFor(key, {}));
+    var nm = h('div', 'pname');
+    nm.textContent = store.get().profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
+    mc.appendChild(nm); s.appendChild(mc);
+    var pool = availablePool();
+    if (state.game === 'trace') {
+      var play = h('button', 'playbig startbig', LC.playSVG() + '<span>Spelen!</span>');
+      play.addEventListener('click', function () { startTraceBatch(pool); });
+      s.appendChild(play);
+    } else {
+      var play2 = h('button', 'playbig', LC.playSVG());
+      play2.addEventListener('click', function () {
+        state.firstBatchDone = true;
+        (state.game === 'pop' ? startPop : startFind)(pool);
+      });
+      s.appendChild(play2);
+    }
+  }
+
+  function buildKernChoice() {
+    var s = scr.menu, key = state.profile;
+    s.textContent = '';
+    buildTrace(); buildFind(); buildPop(); buildCount(); buildMath();
+    menuSky(s, key);
     var back = h('button', 'home', LC.homeSVG());
     back.addEventListener('click', function () { buildGames(); show('games'); audio.voiceChoose(); });
     s.appendChild(back);
     var badge = h('div', 'modebadge', state.game === 'find' ? LC.searchSVG() : state.game === 'pop' ? LC.balloonIconSVG() : LC.pencilSVG());
     s.appendChild(badge);
-
     var mc = h('div', 'menu-cat', catFor(key, {}));
-    var nm = h('div', 'pname'); nm.textContent = prof.name || (key === 'speler1' ? 'Speler 1' : 'Speler 2'); mc.appendChild(nm);
-    s.appendChild(mc);
-
-    var letters = nameLetters(key);
-    if (state.cat === 'name' && !letters.length) state.cat = capsOn() ? 'upper' : 'lower';
-    if (state.cat === 'upper' && !capsOn()) state.cat = 'lower';
-
-    var tabs = h('div', 'tabs');
-    var tabDefs = capsOn() ? [['upper', 'A'], ['lower', 'a'], ['digit', '1']] : [['lower', 'a'], ['digit', '1']];
-    if (letters.length) tabDefs.push(['name', letters[0]]);
-    tabDefs.forEach(function (c) {
-      var tb = h('button', 'tab' + (c[0] === state.cat ? ' on' : ''), LC.glyphSVG(c[1], { sw: 16 }) + (c[0] === 'name' ? '<span class="badge">★</span>' : ''));
-      tb.dataset.cat = c[0];
-      tb.addEventListener('click', function () { state.cat = c[0]; buildMenu(); });
-      tabs.appendChild(tb);
-    });
-    s.appendChild(tabs);
+    var nm = h('div', 'pname');
+    nm.textContent = store.get().profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
+    mc.appendChild(nm); s.appendChild(mc);
 
     if (state.game !== 'trace') {
       var play = h('button', 'playbig', LC.playSVG());
-      play.addEventListener('click', function () { (state.game === 'pop' ? startPop : startFind)(state.cat); });
+      play.addEventListener('click', function () { (state.game === 'pop' ? startPop : startFind)(availablePool()); });
       s.appendChild(play);
       return;
     }
 
-    var list = listFor(state.cat);
-    // The current row is marked, and the first letter in it that is not done yet bounces.
-    var rowIdx = {};
-    if (state.cat !== 'name') {
-      var wc = state.cat === 'upper' && !capsOn() ? 'lower' : state.cat, wr = walkRange(wc), wn = walkNext(wc, wr.to - 1);
-      for (var q = wr.from; q < wr.to; q++) rowIdx[q] = q === wn ? ' row next' : ' row';
-    }
-    var grid = h('div', 'grid ' + (state.cat === 'digit' ? 'g5' : state.cat === 'name' ? 'gname' : 'g7'));
-    list.forEach(function (k, idx) {
-      var done = prof.done[k] || 0, stars = '';
-      for (var j = 0; j < Math.min(5, done); j++) stars += '★';
-      var t = h('button', 'tile' + (rowIdx[idx] || ''), LC.glyphSVG(k, { sw: 16 }));
-      t.dataset.key = k;
-      var st = h('div', 'stars'); st.textContent = stars; t.appendChild(st);
-      t.addEventListener('click', function () { openTrace(state.cat, idx); });
-      grid.appendChild(t);
+    var grid = h('div', 'kern-grid');
+    LC.KERNS.forEach(function (kern) {
+      var purchased = LC.kernPurchased(key, kern.id);
+      var reachable = LC.kernReachable(key, kern.id);
+      var cls = 'kern-card ' + (purchased ? 'open' : reachable ? 'notyet' : 'locked');
+      var card = h('div', cls);
+      var lbl = h('div', 'kern-label'); lbl.textContent = kern.label; card.appendChild(lbl);
+      var tiles = h('div', 'kern-tiles');
+      kern.letters.forEach(function (k) {
+        var tl = h('span', 'kern-tile'); tl.innerHTML = LC.glyphSVG(k, { sw: 18, color: '#4a3f63' }); tiles.appendChild(tl);
+      });
+      card.appendChild(tiles);
+      if (!purchased) {
+        var lock = h('span', 'kern-lock'); lock.innerHTML = LC.lockSVG(); card.appendChild(lock);
+      }
+      card.addEventListener('click', function () {
+        if (!purchased) {
+          audio.voiceTTS(reachable ? 'kern-notyet' : 'kern-locked');
+          return;
+        }
+        state.kern = kern.id;
+        startTraceBatch(kern.letters.slice());
+      });
+      grid.appendChild(card);
     });
     s.appendChild(grid);
   }
@@ -725,20 +753,18 @@
   }
 
   function step(d) {
-    var n = listFor(state.cat).length;
-    openTrace(state.cat, (state.pos + d + n) % n);
+    if (state.traceBatch && !state.firstBatchDone) {
+      var n = state.traceBatch.pool.length;
+      openTrace((state.pos + d + n) % n, true);
+    } else {
+      var list = listFor(), n2 = list.length || 1;
+      openTrace((state.pos + d + n2) % n2, false);
+    }
   }
 
-  function renderCurrent(list) {
-    if (state.cat !== 'name') {
-      T.cur.className = 'navcur';
-      T.cur.innerHTML = LC.glyphSVG(state.glyph, { sw: 15 });
-      return;
-    }
-    T.cur.className = 'navcur namerow' + (list.length > 9 ? ' long' : '');
-    T.cur.innerHTML = list.map(function (k, i) {
-      return '<span class="np' + (i < state.pos ? ' done' : i === state.pos ? ' cur' : '') + '">' + LC.glyphSVG(k, { sw: 18 }) + '</span>';
-    }).join('');
+  function renderCurrent() {
+    T.cur.className = 'navcur';
+    T.cur.innerHTML = LC.glyphSVG(state.glyph, { sw: 15 });
   }
 
   function setMood(m) {
@@ -763,40 +789,64 @@
     if (tracer) { tracer.destroy(); tracer = null; }
   }
 
-  function openTrace(cat, pos) {
+  function openTrace(posOrIdx, batchMode) {
     clearTimeout(advanceTimer); token++;
     var mine = token;
-    var list = listFor(cat);
-    if (!list.length) { cat = 'upper'; list = listFor(cat); pos = 0; }
-    state.cat = cat;
-    state.pos = Math.max(0, Math.min(pos || 0, list.length - 1));
-    var key = list[state.pos];
+    var list, key;
+    if (batchMode && state.traceBatch) {
+      list = state.traceBatch.pool;
+      state.pos = Math.max(0, Math.min(posOrIdx || 0, list.length - 1));
+      key = list[state.pos];
+    } else {
+      list = listFor();
+      if (!list.length) { list = LC.KERNS[0].letters.slice(); }
+      state.pos = Math.max(0, Math.min(posOrIdx || 0, list.length - 1));
+      key = list[state.pos];
+      batchMode = false;
+    }
     state.glyph = key;
+
+    // Digraph: trace first component first
+    var g = LC.GLYPHS[key];
+    if (g && g.parts) {
+      state.digraphKey = key; state.digraphPart = 0;
+    } else {
+      state.digraphKey = null; state.digraphPart = 0;
+    }
+    var effectiveKey = (g && g.parts) ? g.parts[0] : key;
+
     if (tracer) { tracer.destroy(); tracer = null; }
     show('trace');
-    renderCurrent(list);
+    renderCurrent();
     setMood('idle');
-    tracer = new LC.Tracer(T.card, key, store.getStrict(state.profile), {
+
+    var level = store.getTraceLevel(state.profile, effectiveKey);
+    tracer = new LC.Tracer(T.card, effectiveKey, store.getStrict(state.profile), {
       pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
-      onSuccess: function () { success(key, mine); },
-      onTry: function () { store.record(state.profile, key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
+      level: level,
+      onSuccess: function () { success(key, mine, batchMode); },
+      onTry: function () { store.record(state.profile, effectiveKey, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
       onHelp: function () { setMood('help'); audio.voiceHelp(); },
-      onHelpDone: function () { setMood('idle'); }
+      onHelpDone: function () { setMood('idle'); },
+      onLevel4Done: function () { level4Done(key, mine, batchMode); }
     });
-    // Fonetische klank → "Doe mij maar na" → armpje demo
-    setTimeout(function () {
-      if (mine !== token) return;
-      audio.speakPhonetic(key.toLowerCase()).then(function () {
+    if (level <= 2) {
+      setTimeout(function () {
         if (mine !== token) return;
-        setTimeout(function () {
+        audio.speakPhonetic(key.toLowerCase()).then(function () {
           if (mine !== token) return;
-          audio.voiceDemoIntro().then(function () {
+          setTimeout(function () {
             if (mine !== token) return;
-            showHow();
-          });
-        }, 200);
-      });
-    }, 350);
+            audio.voiceDemoIntro().then(function () {
+              if (mine !== token) return;
+              showHow();
+            });
+          }, 200);
+        });
+      }, 350);
+    } else {
+      setTimeout(function () { if (mine === token) audio.speakPhonetic(key.toLowerCase()); }, 350);
+    }
   }
 
   function showHow() {
@@ -805,46 +855,106 @@
     tracer.demo({ passes: 1 });
   }
 
-  function success(key, mine) {
+  function success(key, mine, batchMode) {
+    var g = LC.GLYPHS[key];
+    var justTracedKey = (state.digraphKey === key) ? g.parts[state.digraphPart] : key;
+
     setMood('happy');
     audio.chime();
     setTimeout(function () { if (mine === token) audio.voicePraise(); }, 500);
     store.addDone(state.profile, key);
+    store.traceResult(state.profile, justTracedKey, true);
     burst();
     gain(1, T.balloons);
-    var list = listFor(state.cat), cat0 = state.cat === 'upper' && !capsOn() ? 'lower' : state.cat;
-    var rowDone = walkTrace(cat0, key);
-    var last = rowDone || (state.cat === 'name' && state.pos === list.length - 1);
-    if (last) {
-      // The whole name or a whole row is done: a bigger celebration, then back to the choice screen.
-      setTimeout(function () { if (mine === token) { gain(2, T.balloons); earnStamp('trace', T.balloons); } }, 1200);
-      setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 1200);
-      setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 2400);
+
+    // Digraph part 0 done: now trace part 1
+    if (state.digraphKey === key && state.digraphPart === 0 && g && g.parts) {
+      state.digraphPart = 1;
+      var part1Key = g.parts[1];
+      var level1 = store.getTraceLevel(state.profile, part1Key);
       advanceTimer = setTimeout(function () {
         if (mine !== token) return;
-        leaveTrace(); buildMenu(); show('menu');
-      }, 6000);
+        if (tracer) { tracer.destroy(); tracer = null; }
+        tracer = new LC.Tracer(T.card, part1Key, store.getStrict(state.profile), {
+          pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
+          level: level1,
+          onSuccess: function () { success(key, mine, batchMode); },
+          onTry: function () { store.record(state.profile, part1Key, 'tryfail'); setMood('oops'); audio.boop(); audio.voiceRetry(); },
+          onHelp: function () { setMood('help'); audio.voiceHelp(); },
+          onHelpDone: function () { setMood('idle'); },
+          onLevel4Done: function () { level4Done(key, mine, batchMode); }
+        });
+      }, 1200);
       return;
     }
-    var nextPos = (state.pos + 1) % list.length, cat = state.cat;
-    if (cat !== 'name') {
-      // Inside the current row: carry on with the letters of that row that are not done yet.
-      var nx = walkNext(cat0, state.pos), rg = walkRange(cat0);
-      if (nx >= 0 && state.pos >= rg.from && state.pos < rg.to) nextPos = nx;
+
+    if (state.digraphKey === key && state.digraphPart === 1) {
+      state.digraphKey = null; state.digraphPart = 0;
     }
-    // Now and then, instead of the next letter in the row, one that needs extra practice.
-    if (cat !== 'name' && store.get().settings.adaptive && Math.random() < 0.34) {
-      var prof = store.get().profiles[state.profile];
-      var hard = list.filter(function (k) { return k !== key && mastery(prof, k) === 'practice'; });
+    advanceAfterTrace(key, mine, batchMode);
+  }
+
+  function level4Done(key, mine, batchMode) {
+    var g = LC.GLYPHS[key];
+    var justTracedKey = (state.digraphKey === key) ? g.parts[state.digraphPart] : key;
+    store.traceResult(state.profile, justTracedKey, true);
+    if (state.digraphKey === key && state.digraphPart === 0 && g && g.parts) {
+      store.traceResult(state.profile, g.parts[1], true);
+    }
+    state.digraphKey = null; state.digraphPart = 0;
+    setMood('happy');
+    audio.chime();
+    store.addDone(state.profile, key);
+    burst();
+    gain(1, T.balloons);
+    advanceAfterTrace(key, mine, batchMode);
+  }
+
+  function advanceAfterTrace(key, mine, batchMode) {
+    if (batchMode && state.traceBatch) {
+      var batch = state.traceBatch;
+      batch.idx = (batch.idx || 0) + 1;
+      if (batch.idx >= batch.pool.length) {
+        state.firstBatchDone = true;
+        setTimeout(function () { if (mine === token) { gain(2, T.balloons); earnStamp('trace', T.balloons); } }, 1200);
+        setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 1200);
+        setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 2400);
+        advanceTimer = setTimeout(function () {
+          if (mine !== token) return;
+          leaveTrace(); buildMenu(); show('menu');
+        }, 6000);
+        return;
+      }
+      advanceTimer = setTimeout(function () {
+        if (mine !== token) return;
+        openTrace(batch.idx, true);
+      }, 3800);
+      return;
+    }
+    // Free trace: advance within kern, occasionally practice weak letters
+    var list = listFor();
+    var nextPos = list.length ? (state.pos + 1) % list.length : 0;
+    if (store.get().settings.adaptive && Math.random() < 0.34) {
+      var hard = list.filter(function (k) { return k !== key && mastery(state.profile, k) === 'practice'; });
       if (hard.length) nextPos = list.indexOf(pickTarget(hard, key));
     }
     advanceTimer = setTimeout(function () {
       if (mine !== token) return;
-      openTrace(cat, nextPos);
+      openTrace(nextPos, false);
     }, 3800);
   }
 
-  LC.testTraceSuccess = function () { if (tracer) success(state.glyph, token); };
+  LC.testTraceSuccess = function () { if (tracer) success(state.glyph, token, !!state.traceBatch); };
+
+  var BATCH_SIZE = 7;
+
+  function startTraceBatch(pool) {
+    var batch = pool.slice();
+    if (batch.length > BATCH_SIZE) batch = shuffle(batch).slice(0, BATCH_SIZE);
+    state.traceBatch = { pool: batch, idx: 0 };
+    state.firstBatchDone = false;
+    openTrace(0, true);
+  }
 
   function burst(container) {
     container = container || T.balloons;
@@ -873,16 +983,6 @@
     return arr;
   }
 
-  function poolFor(cat) {
-    if (cat === 'upper' && !capsOn()) cat = 'lower';
-    if (cat !== 'name') return LC.CATEGORIES[cat].slice();
-    var seen = {}, pool = [];
-    nameLetters(state.profile).forEach(function (k) { if (!seen[k]) { seen[k] = 1; pool.push(k); } });
-    var fill = capsOn() ? LC.CATEGORIES.upper : LC.CATEGORIES.lower;
-    if (pool.length < 3) fill.forEach(function (k) { if (!seen[k] && pool.length < 6) { seen[k] = 1; pool.push(k); } });
-    return pool;
-  }
-
   function buildFind() {
     var s = scr.find;
     s.textContent = '';
@@ -905,10 +1005,11 @@
     audio.stopVoice();
   }
 
-  function startFind(cat) {
-    var pool = poolFor(cat);
-    if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
-    F.kind = cat; F.pool = pool; F.n = 0; F.target = null; F.first = 0; F.used = {};
+  function startFind(pool) {
+    var wasBatch = !state.firstBatchDone;
+    if (!pool || !pool.length) pool = availablePool();
+    if (!pool.length) pool = LC.KERNS[0].letters.slice();
+    F.kind = 'kern'; F.pool = pool; F.n = 0; F.target = null; F.first = 0; F.used = {}; F._wasBatch = wasBatch;
     show('find');
     nextRound();
   }
@@ -958,6 +1059,7 @@
     if (key === F.target) {
       F.locked = true;
       store.record(state.profile, F.target, F.wrong === 0 ? 'first' : 'ask');
+      store.recordFirst(state.profile, F.target, F.wrong === 0);
       if (F.wrong === 0) F.first = (F.first || 0) + 1;
       btn.classList.add('right');
       Array.prototype.forEach.call(F.choices.children, function (c) { if (c !== btn) c.classList.add('fade'); });
@@ -992,7 +1094,7 @@
     for (var i = 0; i < ROUNDS; i++) F.dots.appendChild(h('span', 'dot on'));
     setMood('happy');
     audio.chime(); burst(F.balloons);
-    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); if (F.first >= 4) earnStamp('find', F.balloons); } }, 1200);
+    setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); if (F.first >= 4) earnStamp('find', F.balloons); if (F._wasBatch) state.firstBatchDone = true; } }, 1200);
     F.timer = setTimeout(function () {
       if (gen !== F.gen) return;
       leaveFind(); buildMenu(); show('menu');
@@ -1027,11 +1129,12 @@
     audio.stopVoice();
   }
 
-  function startPop(cat) {
-    var pool = poolFor(cat);
-    if (!pool.length) { cat = 'upper'; pool = poolFor(cat); }
+  function startPop(pool) {
+    var wasBatch = !state.firstBatchDone;
+    if (!pool || !pool.length) pool = availablePool();
+    if (!pool.length) pool = LC.KERNS[0].letters.slice();
     leavePop();
-    G.kind = cat; G.pool = pool; G.n = 0; G.target = null; G.firstTry = 0; G.used = {};
+    G.kind = 'kern'; G.pool = pool; G.n = 0; G.target = null; G.firstTry = 0; G.used = {}; G._wasBatch = wasBatch;
     show('pop');
     spawnLoop(G.run);
     nextPopRound();
@@ -1138,6 +1241,7 @@
     if (G.locked || G.cool) return;
     if (key !== G.target) { wrongTap(b, gen); return; }
     store.record(state.profile, G.target, G.wrong === 0 ? 'first' : 'ask');
+    store.recordFirst(state.profile, G.target, G.wrong === 0);
     G.locked = true;
     clearTimeout(G.hintT);
     sparks(b);
@@ -1174,6 +1278,7 @@
 
   function revealTarget(gen) {
     store.record(state.profile, G.target, 'ask');
+    store.recordFirst(state.profile, G.target, false);
     G.locked = true; G.cool = false;
     clearTimeout(G.hintT);
     G.sky.classList.remove('cool');
@@ -1203,7 +1308,7 @@
     Array.prototype.forEach.call(G.sky.children, function (b, i) {
       setTimeout(function () { if (gen === G.gen && b.parentNode) { sparks(b); audio.pop(); b.parentNode.removeChild(b); } }, 200 + i * 250);
     });
-    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); if (G.firstTry >= 4) earnStamp('pop', G.fx); } }, 400);
+    setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); if (G.firstTry >= 4) earnStamp('pop', G.fx); if (G._wasBatch) state.firstBatchDone = true; } }, 400);
     G.timer = setTimeout(function () {
       if (gen !== G.gen) return;
       leavePop(); buildMenu(); show('menu');
@@ -1690,9 +1795,9 @@
     closeModal();
     if (current === 'math') startMath();
     else if (current === 'count') startCount();
-    else if (current === 'pop') startPop(G.kind);
-    else if (current === 'find') startFind(F.kind);
-    else if (current === 'trace' && state.glyph) openTrace(state.cat, state.pos);
+    else if (current === 'pop') startPop(G.pool && G.pool.length ? G.pool : availablePool());
+    else if (current === 'find') startFind(F.pool && F.pool.length ? F.pool : availablePool());
+    else if (current === 'trace' && state.glyph) openTrace(state.pos, !!(state.traceBatch && !state.firstBatchDone));
     else if (current === 'games') buildGames();
     else if (current === 'shop') buildShop();
     else if (current === 'menu') buildMenu();
@@ -1813,11 +1918,11 @@
 
   // ---------- Practice what is hard ----------
   // Letters and numbers that need extra practice come up more often; what already goes well
-  // still comes up now and then. (The same judgement as in the parents' overview.)
+  // still comes up now and then.
   function weightFor(key) {
     if (!store.get().settings.adaptive || !state.profile) return 1;
-    var m = mastery(store.get().profiles[state.profile], key);
-    return m === 'practice' ? 6 : m === 'new' ? 2.5 : m === 'busy' ? 2.5 : 0.8;
+    var m = LC.masteryOf(state.profile, key);
+    return m === 'practice' ? 6 : m === 'new' ? 3 : m === 'busy' ? 2 : 0.8;
   }
 
   // Pick one item from pool: not `avoid`, and less likely if it was already used this game.
@@ -1835,13 +1940,7 @@
   var WEEKDAYS = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
 
   // new = not seen yet, busy = on the way, good = knows it, practice = needs extra attention
-  function mastery(p, k) {
-    var e = p.stats[k] || [0, 0, 0, 0], done = p.done[k] || 0, a = e[0], r = e[1], m = e[2], t = e[3];
-    if (!a && !done && !m && !t) return 'new';
-    if ((a >= 2 && r / a < 0.5) || m >= 4 || (done >= 2 && t > done * 2)) return 'practice';
-    if ((a >= 3 && r / a >= 0.75 && m <= a) || (a < 3 && done >= 4 && t <= done)) return 'good';
-    return 'busy';
-  }
+  function mastery(profile, k) { return LC.masteryOf(profile, k); }
 
   function detailText(p, k) {
     var e = p.stats[k] || [0, 0, 0, 0], done = p.done[k] || 0, parts = [];
@@ -1853,7 +1952,7 @@
   }
 
   function openProgress(which) {
-    var d = store.get(), p = d.profiles[which];
+    var d = store.get();
     var card = h('div', 'mcard progress');
     var title = h('h2'); title.textContent = 'Voortgang'; card.appendChild(title);
 
@@ -1869,6 +1968,7 @@
     });
     card.appendChild(tabs);
 
+    var p = d.profiles[which];
     var today = Math.round((p.time[store.dayKey(0)] || 0) / 60);
     var info = h('div', 'pinfo');
     ['★ ' + p.stars + ' sterren', 'Bonuskaartjes: ' + p.tickets, 'Rekenen: tot ' + p.mathMax, 'Vandaag gespeeld: ' + today + ' min'].forEach(function (t) {
@@ -1890,13 +1990,11 @@
 
     var detail = h('div', 'pdetail'); detail.textContent = 'Tik op een letter of cijfer voor details.';
     var hasData = false;
-    [['Hoofdletters', LC.CATEGORIES.upper], ['Kleine letters', LC.CATEGORIES.lower], ['Cijfers', LC.CATEGORIES.digit]].filter(function (g) {
-      return capsOn() || g[1] !== LC.CATEGORIES.upper;
-    }).forEach(function (g) {
-      var t = h('div', 'pgtitle'); t.textContent = g[0]; card.appendChild(t);
+    LC.KERNS.forEach(function (kern) {
+      var t = h('div', 'pgtitle'); t.textContent = kern.label; card.appendChild(t);
       var grid = h('div', 'pgrid');
-      g[1].forEach(function (k) {
-        var mst = mastery(p, k);
+      kern.letters.forEach(function (k) {
+        var mst = mastery(which, k);
         if (mst !== 'new') hasData = true;
         var tile = h('button', 'ptile m-' + mst, LC.glyphSVG(k, { sw: 18, color: '#4a3f63' }));
         tile.addEventListener('click', function () { detail.textContent = k + ': ' + detailText(p, k); });
@@ -1913,9 +2011,10 @@
     card.appendChild(detail);
 
     var bad = [];
-    LC.ORDER.forEach(function (k) {
-      if (!capsOn() && LC.categoryOf(k) === 'upper') return;
-      if (mastery(p, k) === 'practice') { var e = p.stats[k] || [0, 0, 0, 0]; bad.push([k, e[2] + (e[0] - e[1]) + e[3] / 2]); }
+    LC.KERNS.forEach(function (kern) {
+      kern.letters.forEach(function (k) {
+        if (mastery(which, k) === 'practice') { var e = p.stats[k] || [0, 0, 0, 0]; bad.push([k, e[2] + (e[0] - e[1]) + e[3] / 2]); }
+      });
     });
     bad.sort(function (a, b) { return b[1] - a[1]; });
     var prac = h('div', 'ppractice');
@@ -1926,6 +2025,12 @@
       var none = h('span'); none.textContent = hasData ? 'niets, alles gaat goed!' : 'nog te weinig gespeeld, het overzicht vult zich vanzelf.'; prac.appendChild(none);
     }
     card.appendChild(prac);
+
+    card.appendChild(row('Beheersingsnorm', seg(
+      [['3', '3 van 5'], ['4', '4 van 5'], ['5', '5 van 5']],
+      String(store.getMasteryThreshold(which)),
+      function (v) { store.setMasteryThreshold(which, +v); }
+    )));
 
     var back = h('button', 'btn primary'); back.textContent = 'Terug';
     back.addEventListener('click', openParent);

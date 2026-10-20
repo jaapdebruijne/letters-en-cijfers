@@ -22,6 +22,7 @@
 
   LC.Tracer = function (host, key, strictKey, cb) {
     var g = LC.GLYPHS[key], cfg = STRICT[strictKey] || STRICT.normaal;
+    var level = (cb && cb.level) || 1;
     var svg = mk('svg', { viewBox: g.view.join(' ') }, 'board-svg');
     var wide = mk('g'), dots = mk('g'), ink = mk('g'), top = mk('g');
     svg.appendChild(wide); svg.appendChild(dots); svg.appendChild(ink); svg.appendChild(top);
@@ -29,13 +30,19 @@
 
     var totalLen = 0;
     var tracks = g.strokes.map(function (d) {
-      wide.appendChild(mk('path', { d: d, stroke: g.color }, 'guide-wide'));
+      if (level <= 2) wide.appendChild(mk('path', { d: d, stroke: g.color }, 'guide-wide'));
       var p = mk('path', { d: d, stroke: g.color }, 'guide-dots');
-      dots.appendChild(p);
+      if (level <= 2) {
+        dots.appendChild(p);
+      } else {
+        // Temporarily add to SVG to compute length, then remove
+        svg.appendChild(p);
+      }
       var len = p.getTotalLength();
       totalLen += len;
       var n = Math.max(4, Math.round(len / 10)), pts = [];
       for (var i = 0; i <= n; i++) { var q = p.getPointAtLength(len * i / n); pts.push([q.x, q.y]); }
+      if (level >= 3 && p.parentNode === svg) svg.removeChild(p);
       var cover = [];
       for (var c = 0; c < pts.length; c++) cover.push(Infinity);
       return { pts: pts, next: 0, cover: cover, done: false };
@@ -63,6 +70,7 @@
 
     var marker = mk('circle', { r: 11, stroke: g.color }, 'marker');
     var ghost = mk('circle', { r: 14, stroke: g.color, visibility: 'hidden' }, 'ghost');
+    if (level >= 4) marker.setAttribute('visibility', 'hidden');
     top.appendChild(marker); top.appendChild(ghost); top.appendChild(catArm);
 
     var active = null, last = null, cur = null, curD = '', inkLen = 0;
@@ -279,6 +287,11 @@
     function up(e) {
       if (e.pointerId !== active) return;
       active = null; last = null;
+      if (level >= 4 && inkLen > 0 && !solved && !locked) {
+        solved = true; locked = true;
+        if (cb && cb.onLevel4Done) cb.onLevel4Done();
+        return;
+      }
       if (!solved && !locked) attemptT = setTimeout(endAttempt, 1500);
     }
     svg.addEventListener('pointerup', up);
@@ -288,6 +301,7 @@
 
     return {
       demo: demo,
+      getLevel: function () { return level; },
       destroy: function () {
         dead = true;
         clearTimeout(attemptT); clearTimeout(helpT);

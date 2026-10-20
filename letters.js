@@ -105,4 +105,44 @@
   LC.categoryOf = function (key) {
     return /[A-Z]/.test(key) ? 'upper' : /[a-z]/.test(key) ? 'lower' : 'digit';
   };
+
+  // Two-letter sounds (digraphs). parts = [letter1, letter2] for sequential tracing.
+  var DIGRAPH_DEFS = [
+    ['aa', 'a', 'a'],
+    ['ee', 'e', 'e'],
+    ['oo', 'o', 'o'],
+    ['oe', 'o', 'e'],
+    ['ij', 'i', 'j'],
+    ['eu', 'e', 'u'],
+    ['ie', 'i', 'e'],
+    ['ou', 'o', 'u'],
+    ['uu', 'u', 'u'],
+    ['au', 'a', 'u'],
+    ['ui', 'u', 'i'],
+    ['ei', 'e', 'i']
+  ];
+
+  LC.CATEGORIES.digraph = [];
+  DIGRAPH_DEFS.forEach(function (d, i) {
+    var key = d[0], p1 = d[1], p2 = d[2];
+    var g1 = LC.GLYPHS[p1], g2 = LC.GLYPHS[p2];
+    LC.GLYPHS[key] = {
+      view: g1.view,          // view of first part (used as fallback)
+      color: COLORS[i % COLORS.length],
+      sound: key,             // audio/letters/aa.mp3 etc.
+      parts: [p1, p2],        // sequential tracing
+      strokes: g1.strokes     // fallback strokes (rendering uses parts-aware path in art.js)
+    };
+    LC.CATEGORIES.digraph.push(key);
+  });
+
+  // Keep LC.categoryOf working for digraphs.
+  var _origCategoryOf = LC.categoryOf;
+  LC.categoryOf = function (key) {
+    if (LC.CATEGORIES.digraph.indexOf(key) >= 0) return 'digraph';
+    return _origCategoryOf(key);
+  };
+
+  // Add digraphs to ORDER so audio preload includes them.
+  LC.ORDER = LC.ORDER.concat(LC.CATEGORIES.digraph);
 })();

@@ -303,6 +303,21 @@
 
   LC.balloonLetterSVG = function (color, key, pos) {
     var g = LC.GLYPHS[key];
+    if (g.parts) {
+      var g1 = LC.GLYPHS[g.parts[0]], g2 = LC.GLYPHS[g.parts[1]];
+      var p1 = g1.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      var p2 = g2.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      var stroke = 'fill="none" stroke="' + g.color + '" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"';
+      var at2 = pos ? ' x="' + pos[0] + '" y="' + pos[1] + '" width="' + pos[2] + '" height="' + pos[3] + '"' : '';
+      return '<svg' + at2 + ' viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+        '<path d="M 30 68 C 22 78 38 88 30 98" stroke="#b9a8d4" stroke-width="2" fill="none"/>' +
+        '<ellipse cx="30" cy="32" rx="26" ry="31" fill="' + color + '"/>' +
+        '<path d="M 30 62 L 23 71 L 37 71 Z" fill="' + color + '"/>' +
+        '<ellipse cx="30" cy="32" rx="16.5" ry="21.5" fill="#ffffff" opacity="0.93"/>' +
+        '<svg x="5" y="10" width="22" height="44" viewBox="' + g1.view.join(' ') + '" preserveAspectRatio="xMidYMid meet"><g ' + stroke + '>' + p1 + '</g></svg>' +
+        '<svg x="31" y="10" width="22" height="44" viewBox="' + g2.view.join(' ') + '" preserveAspectRatio="xMidYMid meet"><g ' + stroke + '>' + p2 + '</g></svg>' +
+        '</svg>';
+    }
     var paths = g.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
     var at = pos ? ' x="' + pos[0] + '" y="' + pos[1] + '" width="' + pos[2] + '" height="' + pos[3] + '"' : '';
     return '<svg' + at + ' viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
@@ -411,6 +426,16 @@
   LC.glyphSVG = function (key, opts) {
     var g = LC.GLYPHS[key];
     var sw = (opts && opts.sw) || 14, col = (opts && opts.color) || g.color;
+    if (g.parts) {
+      var g1 = LC.GLYPHS[g.parts[0]], g2 = LC.GLYPHS[g.parts[1]];
+      var p1 = g1.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      var p2 = g2.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
+      var stroke = 'fill="none" stroke="' + col + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round"';
+      return '<svg class="glyph digraph" viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+        '<svg x="0" y="0" width="120" height="160" viewBox="' + g1.view.join(' ') + '"><g ' + stroke + '>' + p1 + '</g></svg>' +
+        '<svg x="120" y="0" width="120" height="160" viewBox="' + g2.view.join(' ') + '"><g ' + stroke + '>' + p2 + '</g></svg>' +
+        '</svg>';
+    }
     var paths = g.strokes.map(function (d) { return '<path d="' + d + '"/>'; }).join('');
     return '<svg class="glyph" viewBox="' + g.view.join(' ') + '" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<g fill="none" stroke="' + col + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round">' + paths + '</g></svg>';
@@ -430,6 +455,13 @@
     return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<circle cx="21" cy="21" r="12" fill="none" stroke="#7c5cd6" stroke-width="5"/>' +
       '<path d="M 30 30 L 41 41" stroke="#7c5cd6" stroke-width="6" stroke-linecap="round"/></svg>';
+  };
+
+  LC.lockSVG = function () {
+    return '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<rect x="10" y="22" width="28" height="20" rx="4" fill="none" stroke="#7c5cd6" stroke-width="4"/>' +
+      '<path d="M 16 22 L 16 16 C 16 9 32 9 32 16 L 32 22" fill="none" stroke="#7c5cd6" stroke-width="4" stroke-linecap="round"/>' +
+      '</svg>';
   };
 
   LC.playSVG = function () {
