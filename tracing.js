@@ -98,7 +98,9 @@
     var inkCells = {};
     var locked = false, solved = false, dead = false, tries = 0;
     var attemptT = 0, helpT = 0, raf = 0;
-    var recDrawn = []; // accumulated drawn points for level-4 recognition
+    var recDrawn = [];       // accumulated drawn points for level-4 recognition
+    var recStrokeCount = 0;  // completed strokes (reset on each fail)
+    var recInkAtDown = 0;    // inkLen at the start of the current stroke
 
     // ---- Shape recognizer helpers (used only at level 4) ----
 
@@ -285,13 +287,13 @@
       if (dead || solved || locked) return;
 
       if (level >= 4) {
-        // Tiny accidental touch: erase silently.
-        if (inkLen < 15) { clearInk(); recDrawn = []; return; }
-        // Not enough ink yet — child is probably mid-way through a multi-stroke letter
-        // (e.g. drew the dot of 'i' and briefly paused). Keep both ink and drawn points
-        // so the next stroke accumulates on top of what's already there.
-        var minInk = Math.max(50, totalLen * 0.40);
-        if (inkLen < minInk) return;
+        var strokeInk = inkLen - recInkAtDown;
+        // Tiny touch (< 15 units of ink since pen-down): accidental, ignore and wait.
+        if (strokeInk < 15) return;
+        recStrokeCount++;
+        // Wait until at least as many strokes as the template requires are drawn.
+        // This lets the child draw 'i' as dot-then-stroke or stroke-then-dot.
+        if (recStrokeCount < g.strokes.length) return;
         // Shape recognition: compare drawn points against the pre-computed template.
         if (recDrawn.length >= 15) {
           var nd = recNorm(recDrawn);
@@ -307,6 +309,7 @@
         }
         tries++;
         recDrawn = [];
+        recStrokeCount = 0;
         clearInk();
         if (cb.onTry) cb.onTry(tries);
         if (tries >= 5) {
@@ -406,6 +409,7 @@
       if (level < 4) {
         hit(p);
       } else {
+        recInkAtDown = inkLen; // record ink length at the start of this stroke
         recDrawn.push([p[0], p[1]]);
       }
     });
