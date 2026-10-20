@@ -146,9 +146,13 @@
   function clipUrl(path) {
     if (!clips[path]) {
       clips[path] = fetch(path)
-        .then(function (r) { return r.ok ? r.blob() : null; })
+        .then(function (r) {
+          if (!r.ok) return null;
+          var ct = (r.headers.get('content-type') || '').toLowerCase();
+          return (ct.indexOf('audio') !== -1 || ct.indexOf('octet-stream') !== -1) ? r.blob() : null;
+        })
         .then(function (b) { return b && b.size > 0 ? URL.createObjectURL(b) : null; })
-        .catch(function () { return path; });
+        .catch(function () { return null; });
     }
     return clips[path];
   }
@@ -266,6 +270,13 @@
       return playVoice('audio/phrases/doe-mij-maar-na.mp3').then(function (heard) {
         if (heard) return;
         return tts('Doe mij maar na');
+      });
+    },
+    // "Welke letter wil je nog een keer oefenen?"
+    voicePickLetter: function () {
+      return playVoice('audio/phrases/welke-letter.mp3').then(function (heard) {
+        if (heard) return;
+        return tts('Welke letter wil je nog een keer oefenen?');
       });
     },
     // A rising note for each thing that is counted (1 = low, 9 = high).

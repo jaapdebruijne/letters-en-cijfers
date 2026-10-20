@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var LC = window.LC, store = LC.store, audio = LC.audio;
-  var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace', kern: 'start', firstBatchDone: false, digraphKey: null, digraphPart: 0, traceBatch: null };
+  var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace', kern: 'start', firstBatchDone: false, openKern: null, digraphKey: null, digraphPart: 0, traceBatch: null };
   var F = {};
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
   var FUR_COLORS = { roze: '#ee7fa7', groen: '#6cc276', blauw: '#5aafee', geel: '#f6c766', oranje: '#ff9f43', paars: '#c090e8', regenboog: '#ee7fa7' };
@@ -666,9 +666,11 @@
     mc.appendChild(nm); s.appendChild(mc);
     var pool = availablePool();
     if (state.game === 'trace') {
-      var play = h('button', 'playbig startbig', LC.playSVG() + '<span>Spelen!</span>');
+      var play = h('button', 'playbig', LC.playSVG());
       play.addEventListener('click', function () { startTraceBatch(pool); });
       s.appendChild(play);
+      var playLbl = h('div', 'playbig-lbl'); playLbl.textContent = 'Spelen!';
+      s.appendChild(playLbl);
     } else {
       var play2 = h('button', 'playbig', LC.playSVG());
       play2.addEventListener('click', function () {
@@ -678,6 +680,8 @@
       s.appendChild(play2);
     }
   }
+
+  var KERN_COLORS = ['#ff9f43', '#ff6b6b', '#48dbfb', '#1dd1a1', '#5f27cd', '#f368e0', '#feca57', '#54a0ff'];
 
   function buildKernChoice() {
     var s = scr.menu, key = state.profile;
@@ -701,32 +705,54 @@
       return;
     }
 
-    var grid = h('div', 'kern-grid');
-    LC.KERNS.forEach(function (kern) {
-      var purchased = LC.kernPurchased(kern.id);
-      var reachable = LC.kernReachable(key, kern.id);
-      var cls = 'kern-card ' + (reachable ? 'open' : purchased ? 'notyet' : 'locked');
-      var card = h('div', cls);
-      var lbl = h('div', 'kern-label'); lbl.textContent = kern.label; card.appendChild(lbl);
-      var tiles = h('div', 'kern-tiles');
-      kern.letters.forEach(function (k) {
-        var tl = h('span', 'kern-tile'); tl.innerHTML = LC.glyphSVG(k, { sw: 18, color: '#4a3f63' }); tiles.appendChild(tl);
+    if (state.openKern) {
+      buildLetterPicker(s, key);
+    } else {
+      var grid = h('div', 'kern-pick-wrap');
+      LC.KERNS.forEach(function (kern, i) {
+        var purchased = LC.kernPurchased(kern.id);
+        var reachable = LC.kernReachable(key, kern.id);
+        var tile = h('div', 'kern-big-tile' + (reachable ? ' open' : purchased ? ' notyet' : ' locked'));
+        tile.style.background = KERN_COLORS[i % KERN_COLORS.length];
+        var lbl = h('div', 'kern-big-lbl'); lbl.textContent = kern.label; tile.appendChild(lbl);
+        var letters = h('div', 'kern-big-letters');
+        kern.letters.slice(0, 4).forEach(function (lk) {
+          var sp = h('span', 'kern-big-letter'); sp.innerHTML = LC.glyphSVG(lk, { sw: 14, color: '#fff' }); letters.appendChild(sp);
+        });
+        tile.appendChild(letters);
+        if (!purchased) { var lck = h('span', 'kern-big-lock'); lck.innerHTML = LC.lockSVG(); tile.appendChild(lck); }
+        tile.addEventListener('click', function () {
+          if (!purchased) { audio.voiceTTS(reachable ? 'kern-notyet' : 'kern-locked'); return; }
+          state.kern = kern.id;
+          state.openKern = kern.id;
+          buildKernChoice();
+          audio.voicePickLetter();
+        });
+        grid.appendChild(tile);
       });
-      card.appendChild(tiles);
-      if (!purchased) {
-        var lock = h('span', 'kern-lock'); lock.innerHTML = LC.lockSVG(); card.appendChild(lock);
-      }
-      card.addEventListener('click', function () {
-        if (!purchased) {
-          audio.voiceTTS(reachable ? 'kern-notyet' : 'kern-locked');
-          return;
-        }
-        state.kern = kern.id;
-        startTraceBatch(kern.letters.slice());
+      s.appendChild(grid);
+    }
+  }
+
+  function buildLetterPicker(s, key) {
+    var kern = LC.KERNS.find(function (k) { return k.id === state.openKern; });
+    if (!kern) { state.openKern = null; buildKernChoice(); return; }
+    var topRow = h('div', 'letter-pick-top');
+    var backBtn = h('button', 'btn-back-kern'); backBtn.textContent = '← ' + kern.label;
+    backBtn.addEventListener('click', function () { state.openKern = null; buildKernChoice(); });
+    topRow.appendChild(backBtn);
+    s.appendChild(topRow);
+    var wrap = h('div', 'letter-pick-wrap');
+    kern.letters.forEach(function (lk, idx) {
+      var tile = h('div', 'letter-pick-tile');
+      tile.innerHTML = LC.glyphSVG(lk, { sw: 28, color: '#4a3f63' });
+      tile.addEventListener('click', function () {
+        state.kern = state.openKern;
+        openTrace(idx, false);
       });
-      grid.appendChild(card);
+      wrap.appendChild(tile);
     });
-    s.appendChild(grid);
+    s.appendChild(wrap);
   }
 
   // ---------- Tracing screen ----------
@@ -953,6 +979,7 @@
     if (batch.length > BATCH_SIZE) batch = shuffle(batch).slice(0, BATCH_SIZE);
     state.traceBatch = { pool: batch, idx: 0 };
     state.firstBatchDone = false;
+    state.openKern = null;
     openTrace(0, true);
   }
 
