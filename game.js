@@ -417,13 +417,15 @@
     done.addEventListener('click', function () {
       var activeKeys = store.getPlayers() === 1 ? ['speler1'] : ['speler1', 'speler2'];
       activeKeys.forEach(function (pk) { if (!store.get().profiles[pk].fur) store.setFur(pk, 'roze'); });
-      buildNameScreen(); show('profile');
+      buildNameScreen('name'); show('profile');
     });
     s.appendChild(done);
   }
 
-  // Screen to enter name and age for each active player, shown after color picker.
-  function buildNameScreen() {
+  // Two screens after the colour picker: first the name, then the age. `quiet` skips the spoken line
+  // (used when the age screen redraws after a tap).
+  function buildNameScreen(step, quiet) {
+    step = step || 'name';
     var s = scr.profile;
     s.textContent = '';
 
@@ -431,7 +433,13 @@
     var profileKeys = players === 1 ? ['speler1'] : ['speler1', 'speler2'];
 
     var wrap = h('div', 'ns-wrap');
-    var title = h('div', 'ns-title'); title.textContent = 'Hoe heet je?'; wrap.appendChild(title);
+    var title = h('div', 'ns-title'); title.textContent = step === 'name' ? 'Hoe heet jij?' : 'Hoe oud ben jij?'; wrap.appendChild(title);
+    var sub = h('div', 'ns-sub');
+    sub.textContent = step === 'name'
+      ? 'Kun je je naam nog niet zelf schrijven? Vraag dan papa of mama om hem voor je in te vullen.'
+      : 'Ik ben wel benieuwd hoe oud jij bent! Je kunt hier je leeftijd kiezen.';
+    wrap.appendChild(sub);
+    if (!quiet) { if (step === 'name') audio.voiceName(); else audio.voiceAge(); }
 
     profileKeys.forEach(function (profileKey) {
       var card = h('div', 'ns-card');
@@ -441,7 +449,7 @@
 
       var fields = h('div', 'ns-fields');
 
-      // Name input
+      if (step === 'name') {
       var nameRow = h('div', 'ns-row');
       var nameLbl = h('label', 'ns-lbl'); nameLbl.textContent = players === 2 ? (profileKey === 'speler1' ? 'Naam speler 1' : 'Naam speler 2') : 'Jouw naam';
       var nameInp = h('input');
@@ -451,8 +459,7 @@
       nameInp.addEventListener('input', function () { store.get().profiles[profileKey].name = nameInp.value.slice(0, 20); store.save(); });
       nameRow.appendChild(nameLbl); nameRow.appendChild(nameInp);
       fields.appendChild(nameRow);
-
-      // Age picker (big buttons for ages 3-8, plus younger/older)
+      } else {
       var ageRow = h('div', 'ns-row');
       var ageLbl = h('label', 'ns-lbl'); ageLbl.textContent = 'Leeftijd';
       ageRow.appendChild(ageLbl);
@@ -460,11 +467,12 @@
       var curAge = store.getAge(profileKey);
       [3, 4, 5, 6, 7, 8].forEach(function (age) {
         var ab = h('button', 'ns-agebtn' + (curAge === age ? ' on' : '')); ab.textContent = age;
-        ab.addEventListener('click', function () { store.setAge(profileKey, age); store.setAgeDefaults(profileKey, age); buildNameScreen(); });
+        ab.addEventListener('click', function () { store.setAge(profileKey, age); store.setAgeDefaults(profileKey, age); buildNameScreen('age', true); });
         agePicker.appendChild(ab);
       });
       ageRow.appendChild(agePicker);
       fields.appendChild(ageRow);
+      }
 
       card.appendChild(fields);
       wrap.appendChild(card);
@@ -473,8 +481,11 @@
     s.appendChild(wrap);
 
     var done = h('button', 'btn primary cp-done');
-    done.textContent = 'Spelen! →';
-    done.addEventListener('click', function () { buildProfile(); show('profile'); });
+    done.textContent = step === 'name' ? 'Volgende →' : 'Spelen! →';
+    done.addEventListener('click', function () {
+      if (step === 'name') { audio.stopVoice(); buildNameScreen('age'); show('profile'); }
+      else { audio.stopVoice(); buildProfile(); show('profile'); }
+    });
     s.appendChild(done);
   }
 

@@ -235,7 +235,7 @@
         var s = LC.GLYPHS[k].sound;
         if (!seen[s]) { seen[s] = 1; clipUrl('audio/letters/' + s + '.mp3'); }
       });
-      ['welkom', 'kies', 'kijk', 'hoeveel', 'wissel', 'meer', 'erbij'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
+      ['welkom', 'kies', 'kijk', 'hoeveel', 'wissel', 'meer', 'erbij', 'naam', 'leeftijd'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
       for (var i = 1; i <= PRAISE_COUNT; i++) clipUrl('audio/phrases/goed-' + i + '.mp3');
       for (var j = 1; j <= RETRY_COUNT; j++) clipUrl('audio/phrases/nogeens-' + j + '.mp3');
     },
@@ -256,10 +256,10 @@
     voiceMath: function (type) { return playVoice('audio/phrases/' + (type === 'meer' ? 'meer' : 'erbij') + '.mp3'); },
     voiceSwitch: function () { return playVoice('audio/phrases/wissel.mp3'); },
     voiceHowMany: function () { return playVoice('audio/phrases/hoeveel.mp3'); },
-    voiceTTS: function (key) { if (TTS_TEXTS[key]) speakTTS(TTS_TEXTS[key]); },
+    voiceTTS: function (key) { return playVoice('audio/phrases/' + key + '.mp3'); },
     // Phonetic letter sound (klankzuiver): mp3 first, TTS as fallback.
     speakPhonetic: function (letter) {
-      var lk = letter.toLowerCase();
+      var lk = letter.toLowerCase().replace(/-klein$/, '');
       return playVoice('audio/letters/' + lk + '-fo.mp3').then(function (heard) {
         if (heard) return;
         return tts(PHONETICS[lk] || lk);
@@ -278,6 +278,15 @@
         if (heard) return;
         return tts('Welke letter wil je nog een keer oefenen?');
       });
+    },
+    // First-run questions: mp3 if recorded, otherwise TTS.
+    voiceName: function () {
+      var t = 'Hoe heet jij? Als je je naam nog niet zelf kan schrijven, vraag dan papa of mama om deze voor je in te vullen.';
+      return playVoice('audio/phrases/naam.mp3').then(function (heard) { if (!heard) return tts(t); });
+    },
+    voiceAge: function () {
+      var t = 'Ik ben wel benieuwd hoe oud jij bent. Je kunt hier je leeftijd kiezen.';
+      return playVoice('audio/phrases/leeftijd.mp3').then(function (heard) { if (!heard) return tts(t); });
     },
     // A rising note for each thing that is counted (1 = low, 9 = high).
     note: function (i) {

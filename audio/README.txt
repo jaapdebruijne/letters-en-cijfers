@@ -31,3 +31,16 @@ Optional: your own engine sound for the bonus ride
 
 Tips: keep each clip short (1-3 seconds), record in a quiet room, and use
 a cheerful voice. After adding files, reload the page once while online.
+
+Also used by the game (until you record them a computer voice or silence is used)
+  Folder audio/phrases/
+  naam.mp3       first screen of a new child   "Hoe heet jij? Als je je naam nog niet zelf kan schrijven, vraag dan papa of mama om deze voor je in te vullen."
+  leeftijd.mp3   age screen                    "Ik ben wel benieuwd hoe oud jij bent. Je kunt hier je leeftijd kiezen."
+  doe-mij-maar-na.mp3   tracing demo           "Doe mij maar na"
+  welke-letter.mp3      opening a kern         "Welke letter wil je nog een keer oefenen?"
+  kern-locked.mp3       tap on a locked kern   "Deze letters kun je nog niet oefenen. Vraag papa of mama als je deze letters wil oefenen."
+  kern-notyet.mp3       tap on a kern not yet  "Deze letters kun je nog niet oefenen. Oefen de andere letters eerst nog een beetje meer."
+  wissel.mp3 meer.mp3 erbij.mp3   (see the list above)
+  Folder audio/letters/
+  aa.mp3 ee.mp3 oo.mp3 oe.mp3 ij.mp3 eu.mp3 ie.mp3 ou.mp3 uu.mp3 au.mp3 ui.mp3 ei.mp3   the two-letter sounds when tracing
+  <letter>-fo.mp3   the pure sound in Zoeken and Prikken, e.g. i-fo.mp3 k-fo.mp3 aa-fo.mp3 (all kern letters)
