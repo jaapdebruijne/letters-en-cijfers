@@ -1,4 +1,4 @@
-const CACHE = 'lcl-v3';
+const CACHE = 'lcl-v4';
 const CORE = ['./', 'index.html', 'style.css', 'letters.js', 'storage.js', 'kerns.js', 'art.js', 'shop.js', 'audio.js', 'tracing.js', 'physics.js', 'ride.js', 'game.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
