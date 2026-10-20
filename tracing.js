@@ -14,9 +14,8 @@
   var SLACK = 10;
 
   // Level-4 recognition thresholds (normalized 200-unit space)
-  var REC_THRESHOLD = 45;   // max avg Hausdorff-like distance
-  var HIST_BINS = 3;         // grid resolution for spatial histogram check
-  var HIST_THRESHOLD = 0.55; // max L1 distance between HIST_BINS² histograms (0=identical, 2=disjoint)
+  var REC_THRESHOLD = 45;  // max avg Hausdorff-like distance (in 200-unit normalized space)
+  var MIRROR_MARGIN = 8;   // a reflection must beat the drawing by at least this many units to be rejected
 
   function mk(tag, attrs, cls) {
     var e = document.createElementNS(NS, tag);
@@ -140,27 +139,19 @@
       return Math.max(avgNN(a, b), avgNN(b, a));
     }
 
-    // Spatial histogram check: divide the 200-unit space into bins×bins cells,
-    // compare point density per cell (L1 distance between normalized histograms).
-    // Catches mirror images and reflections that fool the NN distance check.
-    function recHistScore(a, b, bins) {
-      function hist(pts) {
-        var h = [], i;
-        for (i = 0; i < bins * bins; i++) h.push(0);
-        for (i = 0; i < pts.length; i++) {
-          var xi = Math.min(bins - 1, Math.max(0, Math.floor((pts[i][0] + 100) / 200 * bins)));
-          var yi = Math.min(bins - 1, Math.max(0, Math.floor((pts[i][1] + 100) / 200 * bins)));
-          h[yi * bins + xi]++;
-        }
-        var sum = 0;
-        for (i = 0; i < h.length; i++) sum += h[i];
-        sum = sum || 1;
-        for (i = 0; i < h.length; i++) h[i] /= sum;
-        return h;
-      }
-      var ha = hist(a), hb = hist(b), diff = 0;
-      for (var i = 0; i < ha.length; i++) diff += Math.abs(ha[i] - hb[i]);
-      return diff;
+    // Reflection check: if flipping the drawing horizontally, vertically, or both
+    // produces a BETTER match to the template (by more than MIRROR_MARGIN), the
+    // drawing is a mirror image and should be rejected.
+    // This catches: reversed S (ε), W drawn for M, mirrored k, etc.
+    // Symmetric letters (i, o) have similar scores in all orientations, so the
+    // margin means they are never falsely rejected.
+    function recIsReflection(drawn, tmpl, normalScore) {
+      function flipX(pts) { return pts.map(function (p) { return [-p[0], p[1]]; }); }
+      function flipY(pts) { return pts.map(function (p) { return [p[0], -p[1]]; }); }
+      var threshold = normalScore - MIRROR_MARGIN;
+      return recScore(flipX(drawn), tmpl) < threshold ||
+             recScore(flipY(drawn), tmpl) < threshold ||
+             recScore(flipX(flipY(drawn)), tmpl) < threshold;
     }
 
     // Run shape recognition for level 4 and handle pass/fail.
@@ -169,8 +160,7 @@
       if (recDrawn.length < 15) { clearInk(); recDrawn = []; recStrokeCount = 0; return; }
       var nd = recNorm(recDrawn);
       var score = recScore(nd, recTemplate);
-      var hist = recHistScore(nd, recTemplate, HIST_BINS);
-      if (score < REC_THRESHOLD && hist < HIST_THRESHOLD) {
+      if (score < REC_THRESHOLD && !recIsReflection(nd, recTemplate, score)) {
         solved = true; locked = true;
         clearTimeout(attemptT);
         svg.setAttribute('class', 'board-svg solved');
