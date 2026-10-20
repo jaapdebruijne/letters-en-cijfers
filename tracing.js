@@ -15,7 +15,7 @@
 
   // Level-4 recognition thresholds (normalized 200-unit space)
   var REC_THRESHOLD = 45;  // max avg Hausdorff-like distance (in 200-unit normalized space)
-  var MIRROR_MARGIN = 8;   // a reflection must beat the drawing by at least this many units to be rejected
+  var MIRROR_MARGIN = 3;   // a reflection must beat the drawing by at least this many units to be rejected
 
   function mk(tag, attrs, cls) {
     var e = document.createElementNS(NS, tag);
@@ -160,6 +160,10 @@
       if (recDrawn.length < 15) { clearInk(); recDrawn = []; recStrokeCount = 0; return; }
       var nd = recNorm(recDrawn);
       var score = recScore(nd, recTemplate);
+      var fxScore = recScore(nd.map(function(p){return[-p[0],p[1]];}), recTemplate);
+      var fyScore = recScore(nd.map(function(p){return[p[0],-p[1]];}), recTemplate);
+      var fxyScore = recScore(nd.map(function(p){return[-p[0],-p[1]];}), recTemplate);
+      console.log('[REC] score='+score.toFixed(1)+' flipX='+fxScore.toFixed(1)+' flipY='+fyScore.toFixed(1)+' flipXY='+fxyScore.toFixed(1)+' threshold='+REC_THRESHOLD+' margin='+MIRROR_MARGIN);
       if (score < REC_THRESHOLD && !recIsReflection(nd, recTemplate, score)) {
         solved = true; locked = true;
         clearTimeout(attemptT);
