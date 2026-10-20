@@ -283,9 +283,15 @@
 
     function endAttempt() {
       if (dead || solved || locked) return;
-      if (inkLen < 30) { clearInk(); if (level >= 4) recDrawn = []; return; }
 
       if (level >= 4) {
+        // Tiny accidental touch: erase silently.
+        if (inkLen < 15) { clearInk(); recDrawn = []; return; }
+        // Not enough ink yet — child is probably mid-way through a multi-stroke letter
+        // (e.g. drew the dot of 'i' and briefly paused). Keep both ink and drawn points
+        // so the next stroke accumulates on top of what's already there.
+        var minInk = Math.max(50, totalLen * 0.40);
+        if (inkLen < minInk) return;
         // Shape recognition: compare drawn points against the pre-computed template.
         if (recDrawn.length >= 15) {
           var nd = recNorm(recDrawn);
@@ -311,6 +317,7 @@
         return;
       }
 
+      if (inkLen < 30) { clearInk(); return; }
       tries++;
       clearInk();
       resetTracks();
