@@ -13,6 +13,10 @@
   };
   var SLACK = 10;
 
+  // Level-4 recognition: maximum average Hausdorff-like distance (normalized 200-unit space)
+  // that a drawing may deviate from the template and still be accepted.
+  var REC_THRESHOLD = 45;
+
   function mk(tag, attrs, cls) {
     var e = document.createElementNS(NS, tag);
     if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
@@ -48,6 +52,23 @@
       return { pts: pts, next: 0, cover: cover, done: false };
     });
 
+    // Pre-compute denser template for level-4 shape recognition
+    var recTemplate = [];
+    if (level >= 4) {
+      g.strokes.forEach(function (d) {
+        var tmp = mk('path', { d: d });
+        svg.appendChild(tmp);
+        var tlen = tmp.getTotalLength();
+        var tn = Math.max(8, Math.round(tlen / 5));
+        for (var ti = 0; ti <= tn; ti++) {
+          var tq = tmp.getPointAtLength(tlen * ti / tn);
+          recTemplate.push([tq.x, tq.y]);
+        }
+        svg.removeChild(tmp);
+      });
+      recTemplate = recNorm(recTemplate);
+    }
+
     // Floating cat paw that follows the ghost cursor during demo
     var pawCol = (cb && cb.pawColor) || '#ee7fa7';
     var pawPad = mk('ellipse', { cx: 0, cy: 0, rx: '13', ry: '11', fill: pawCol, stroke: 'white', 'stroke-width': '2' });
@@ -77,6 +98,46 @@
     var inkCells = {};
     var locked = false, solved = false, dead = false, tries = 0;
     var attemptT = 0, helpT = 0, raf = 0;
+    var recDrawn = []; // accumulated drawn points for level-4 recognition
+
+    // ---- Shape recognizer helpers (used only at level 4) ----
+
+    // Normalize points to a 200-unit bounding box, centered at origin.
+    // Uniform scale (preserves aspect ratio) so tall letters stay tall.
+    function recNorm(pts) {
+      if (!pts.length) return pts;
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (var i = 0; i < pts.length; i++) {
+        if (pts[i][0] < minX) minX = pts[i][0];
+        if (pts[i][0] > maxX) maxX = pts[i][0];
+        if (pts[i][1] < minY) minY = pts[i][1];
+        if (pts[i][1] > maxY) maxY = pts[i][1];
+      }
+      var w = maxX - minX || 1, h = maxY - minY || 1;
+      var s = 200 / Math.max(w, h);
+      var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      return pts.map(function (p) { return [(p[0] - cx) * s, (p[1] - cy) * s]; });
+    }
+
+    // Bidirectional average nearest-neighbor distance (Hausdorff-like).
+    // Returns the worse direction so both over-drawing and under-drawing are penalized.
+    function recScore(a, b) {
+      function avgNN(x, y) {
+        var sum = 0;
+        for (var i = 0; i < x.length; i++) {
+          var best = Infinity;
+          for (var j = 0; j < y.length; j++) {
+            var dx = x[i][0] - y[j][0], dy = x[i][1] - y[j][1], d = dx * dx + dy * dy;
+            if (d < best) best = d;
+          }
+          sum += Math.sqrt(best);
+        }
+        return sum / x.length;
+      }
+      return Math.max(avgNN(a, b), avgNN(b, a));
+    }
+
+    // ---- End shape recognizer helpers ----
 
     function placeMarker() {
       if (level >= 4) { marker.setAttribute('visibility', 'hidden'); return; }
@@ -160,13 +221,14 @@
       var steps = Math.ceil(dist / 5);
       for (var i = 1; i <= steps; i++) {
         var ip = [last[0] + dx * i / steps, last[1] + dy * i / steps];
-        hit(ip);
+        if (level < 4) hit(ip);
         inkCells[Math.floor(ip[0] / 10) + ',' + Math.floor(ip[1] / 10)] = 1;
       }
       inkLen += dist;
       curD += ' L ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
       if (cur) cur.setAttribute('d', curD);
       last = p;
+      if (level >= 4) recDrawn.push([p[0], p[1]]);
     }
 
     // What fraction of 10×10-unit canvas cells contain ink?
@@ -198,7 +260,33 @@
 
     function endAttempt() {
       if (dead || solved || locked) return;
-      if (inkLen < 30) { clearInk(); return; }
+      if (inkLen < 30) { clearInk(); if (level >= 4) recDrawn = []; return; }
+
+      if (level >= 4) {
+        // Shape recognition: compare drawn points against the pre-computed template.
+        if (recDrawn.length >= 15) {
+          var nd = recNorm(recDrawn);
+          var score = recScore(nd, recTemplate);
+          if (score < REC_THRESHOLD) {
+            solved = true; locked = true;
+            clearTimeout(attemptT);
+            svg.setAttribute('class', 'board-svg solved');
+            if (cb.onSuccess) cb.onSuccess();
+            return;
+          }
+        }
+        tries++;
+        recDrawn = [];
+        clearInk();
+        if (cb.onTry) cb.onTry(tries);
+        if (tries >= 5) {
+          tries = 0;
+          if (cb.onHelp) cb.onHelp();
+          helpT = setTimeout(function () { demo(); }, 1500);
+        }
+        return;
+      }
+
       tries++;
       clearInk();
       resetTracks();
@@ -219,6 +307,17 @@
       demoing = true; locked = true;
       clearTimeout(attemptT);
       resetTracks(); clearInk();
+
+      // At level 4, dots has no paths; add temporary ones just for the demo animation.
+      var tempAdded = [];
+      if (level >= 4) {
+        g.strokes.forEach(function (d) {
+          var tp = mk('path', { d: d, stroke: g.color }, 'guide-dots');
+          dots.appendChild(tp);
+          tempAdded.push(tp);
+        });
+      }
+
       var paths = dots.querySelectorAll('path'), seq = [], r, i;
       for (r = 0; r < passes; r++) {
         for (i = 0; i < paths.length; i++) {
@@ -250,6 +349,7 @@
             ghost.setAttribute('visibility', 'hidden');
             catArm.setAttribute('visibility', 'hidden');
             setTimeout(function () { if (!dead) clearInk(); }, 500);
+            tempAdded.forEach(function (tp) { if (tp.parentNode) tp.parentNode.removeChild(tp); });
             demoing = false; locked = false; placeMarker();
             if (cb.onHelpDone) cb.onHelpDone();
             return;
@@ -272,7 +372,11 @@
       cur = mk('path', { d: curD, stroke: g.color }, 'ink');
       ink.appendChild(cur);
       last = p;
-      hit(p);
+      if (level < 4) {
+        hit(p);
+      } else {
+        recDrawn.push([p[0], p[1]]);
+      }
     });
 
     svg.addEventListener('pointermove', function (e) {
