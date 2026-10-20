@@ -160,10 +160,6 @@
       if (recDrawn.length < 15) { clearInk(); recDrawn = []; recStrokeCount = 0; return; }
       var nd = recNorm(recDrawn);
       var score = recScore(nd, recTemplate);
-      var fxScore = recScore(nd.map(function(p){return[-p[0],p[1]];}), recTemplate);
-      var fyScore = recScore(nd.map(function(p){return[p[0],-p[1]];}), recTemplate);
-      var fxyScore = recScore(nd.map(function(p){return[-p[0],-p[1]];}), recTemplate);
-      console.log('[REC] score='+score.toFixed(1)+' flipX='+fxScore.toFixed(1)+' flipY='+fyScore.toFixed(1)+' flipXY='+fxyScore.toFixed(1)+' threshold='+REC_THRESHOLD+' margin='+MIRROR_MARGIN);
       if (score < REC_THRESHOLD && !recIsReflection(nd, recTemplate, score)) {
         solved = true; locked = true;
         clearTimeout(attemptT);
