@@ -4,7 +4,6 @@
   var state = { profile: null, glyph: null, cat: 'upper', pos: 0, game: 'trace', kern: 'start', firstBatchDone: false, openKern: null, digraphKey: null, digraphPart: 0, traceBatch: null };
   var F = {};
   var tracer = null, advanceTimer = 0, moodTimer = 0, token = 0, current = 'profile', T = {};
-  var FUR_COLORS = { roze: '#ee7fa7', groen: '#6cc276', blauw: '#5aafee', geel: '#f6c766', oranje: '#ff9f43', paars: '#c090e8', regenboog: '#ee7fa7' };
 
   function h(tag, cls, html) {
     var e = document.createElement(tag);
@@ -19,11 +18,7 @@
     var o = {};
     for (var k in (opts || {})) o[k] = opts[k];
     o.outfit = store.get().profiles[key].avatar;
-    var fur = store.getFur(key);
-    if (fur === 'regenboog') {
-      o.cls = (o.cls ? o.cls + ' ' : '') + 'regenboog';
-    }
-    return LC.catSVG(fur, o);
+    return LC.catSVG(store.getFur(key), o);
   }
 
   // The doll house things a child has bought appear in the room behind every screen.
@@ -76,8 +71,17 @@
     var r = store.addStamp(state.profile, game);
     if (!container) return;
     var t;
-    if (r === 'ticket') t = h('div', 'ticket-toast', LC.carIconSVG() + '<span>Bonusrit!</span>');
-    else if (r === 'new') t = h('div', 'ticket-toast', '<span class="tstar">✔</span><span>Stempel ' + store.stamps(state.profile).length + ' van 3</span>');
+    if (r === 'ticket') {
+      t = h('div', 'ticket-toast', LC.carIconSVG() + '<span>Bonusrit!</span>');
+      var who3 = state.profile;
+      setTimeout(function () { if (t.parentNode && state.profile === who3) audio.voiceTTS('bonusrit-verdiend'); }, 1700);
+    }
+    else if (r === 'new') {
+      state.freshStamp = game;
+      t = h('div', 'ticket-toast stamp-toast', '<span class="tpaw">' + LC.pawSVG() + '</span><span>Stempel ' + store.stamps(state.profile).length + ' van 3</span>');
+      var who = state.profile;
+      setTimeout(function () { if (t.parentNode && state.profile === who) audio.voiceTTS('stempel-verdiend'); }, 1700);
+    }
     else t = h('div', 'ticket-toast', '<span class="tstar">★</span><span>Probeer een ander spel!</span>');
     container.appendChild(t);
     audio.chime();
@@ -210,8 +214,7 @@
       document.body.appendChild(ringEl);
     }
     var left = Math.max(0, 1 - turn.ms / (min * 60000));
-    var furColors = { roze: '#ee7fa7', groen: '#6cc276', blauw: '#5aafee', geel: '#f6c766', oranje: '#ff9f43', paars: '#c090e8', regenboog: '#ee7fa7' };
-    ringArc.setAttribute('stroke', left < 0.2 ? '#ff9f43' : (furColors[store.getFur(state.profile)] || '#ee7fa7'));
+    ringArc.setAttribute('stroke', left < 0.2 ? '#ff9f43' : LC.petColor(store.getFur(state.profile)));
     ringArc.setAttribute('stroke-dashoffset', (RING_LEN * (1 - left)).toFixed(1));
     ringEl.classList.remove('off');
   }
@@ -310,8 +313,6 @@
   // Returns a player card (cat + name) for the profile screen. Used for 1- and 2-player layout.
   function makeProfileCard(key) {
     var d = store.get();
-    var fur = store.getFur(key);
-    var furCls = fur === 'regenboog' ? 'regenboog' : '';
     var b = h('button', 'pcard pc-' + key, catFor(key, {}));
     var nm = h('div', 'pname');
     nm.textContent = d.profiles[key].name || (key === 'speler1' ? 'Speler 1' : 'Speler 2');
@@ -333,14 +334,14 @@
     if (!d.profiles.speler1.fur) {
       var ws = h('div', 'pwrap');
       var wc = h('div', 'pcard');
-      wc.innerHTML = LC.catSVG('roze', {});
+      wc.innerHTML = LC.catSVG(LC.AVATAR_ORDER[0], {});
       wc.querySelector('.cat').classList.add('still');
       var wb = h('button', 'cp-done');
       wb.textContent = 'Begin! →';
       wb.addEventListener('click', function () {
         audio.unlock();
         audio.voiceWelcome();
-        buildColorPicker();
+        buildPlayerPicker();
       });
       wc.appendChild(wb);
       ws.appendChild(wc);
@@ -356,16 +357,20 @@
     s.appendChild(wrap);
   }
 
-  // First-time (and settings-accessible) color + player count setup screen.
-  // Layout: "Hoeveel spelers?" with big cards at top, then color grid below for each player.
-  function buildColorPicker() {
+  // Setup, step 1: how many players. Then every player without an animal picks one (free); the others
+  // are for sale in the shop. After that come the name and age screens.
+  function activePlayers() { return store.getPlayers() === 1 ? ['speler1'] : ['speler1', 'speler2']; }
+
+  function setupNext() {
+    var need = activePlayers().filter(function (pk) { return !store.get().profiles[pk].fur; })[0];
+    if (need) { buildPetPicker(need); show('profile'); }
+    else { buildNameScreen('name'); show('profile'); }
+  }
+
+  function buildPlayerPicker() {
     var s = scr.profile;
     s.textContent = '';
-
-    var furKeys = ['roze', 'groen', 'blauw', 'geel', 'oranje', 'paars'];
     var players = store.getPlayers();
-
-    // --- Section 1: How many players? ---
     var playerSec = h('div', 'cp-playersec');
     var playerLbl = h('div', 'cp-seclbl'); playerLbl.textContent = 'Hoeveel spelers?';
     playerSec.appendChild(playerLbl);
@@ -373,52 +378,50 @@
     [1, 2].forEach(function (n) {
       var card = h('button', 'cp-playercard' + (n === players ? ' on' : ''));
       var icon = h('div', 'cp-playericon');
-      // Show 1 or 2 poes icons
       for (var i = 0; i < n; i++) {
         var pk = i === 0 ? 'speler1' : 'speler2';
-        icon.innerHTML += LC.catSVG(store.getFur(pk) || 'roze', { head: true, cls: 'idle' });
+        icon.innerHTML += LC.catSVG(store.get().profiles[pk].fur || LC.AVATAR_ORDER[i * 5], { head: true, cls: 'still' });
       }
       card.appendChild(icon);
       var lbl = h('div', 'cp-playerlbl'); lbl.textContent = n + (n === 1 ? ' speler' : ' spelers'); card.appendChild(lbl);
-      card.addEventListener('click', function () { store.setPlayers(n); buildColorPicker(); });
+      card.addEventListener('click', function () { store.setPlayers(n); buildPlayerPicker(); });
       playerCards.appendChild(card);
     });
     playerSec.appendChild(playerCards);
     s.appendChild(playerSec);
+    var done = h('button', 'btn primary cp-done');
+    done.textContent = 'Volgende →';
+    done.addEventListener('click', setupNext);
+    s.appendChild(done);
+  }
 
-    // --- Section 2: Color choice per player ---
-    var profileKeys = players === 1 ? ['speler1'] : ['speler1', 'speler2'];
-    profileKeys.forEach(function (profileKey) {
-      var sec = h('div', 'cp-colorsec');
-      if (players === 2) {
-        var lbl = h('div', 'cp-seclbl');
-        lbl.textContent = profileKey === 'speler1' ? 'Speler 1: kies je poes' : 'Speler 2: kies je poes';
-        sec.appendChild(lbl);
-      } else {
-        var lbl2 = h('div', 'cp-seclbl'); lbl2.textContent = 'Kies je poes'; sec.appendChild(lbl2);
-      }
-
-      var grid = h('div', 'cp-colorgrid');
-      furKeys.forEach(function (fur) {
-        var curFur = store.getFur(profileKey) || 'roze';
-        var btn = h('button', 'cp-coloropt' + (fur === curFur ? ' on' : ''),
-          LC.catSVG(fur, { head: true, cls: 'idle' }));
-        var lname = h('span', 'cp-colname'); lname.textContent = LC.CATS[fur].name; btn.appendChild(lname);
-        btn.addEventListener('click', function () { store.setFur(profileKey, fur); buildColorPicker(); });
-        grid.appendChild(btn);
-      });
-      sec.appendChild(grid);
-      s.appendChild(sec);
-    });
-
-    // --- Done button ---
+  function buildPetPicker(profileKey) {
+    var s = scr.profile;
+    s.textContent = '';
+    var sel = store.get().profiles[profileKey].fur || '';
+    var sec = h('div', 'cp-colorsec');
+    var lbl = h('div', 'cp-seclbl');
+    lbl.textContent = store.getPlayers() === 2 ? (profileKey === 'speler1' ? 'Speler 1' : 'Speler 2') + ': kies je vriendje' : 'Kies je vriendje';
+    sec.appendChild(lbl);
+    var grid = h('div', 'cp-petgrid');
     var done = h('button', 'btn primary cp-done');
     done.textContent = 'Klaar! →';
-    done.addEventListener('click', function () {
-      var activeKeys = store.getPlayers() === 1 ? ['speler1'] : ['speler1', 'speler2'];
-      activeKeys.forEach(function (pk) { if (!store.get().profiles[pk].fur) store.setFur(pk, 'roze'); });
-      buildNameScreen('name'); show('profile');
+    done.disabled = !sel;
+    LC.AVATAR_ORDER.forEach(function (id) {
+      var btn = h('button', 'cp-petopt' + (id === sel ? ' on' : ''), LC.catSVG(id, { head: true, cls: 'still' }));
+      var nm = h('span', 'cp-colname'); nm.textContent = LC.CATS[id].name; btn.appendChild(nm);
+      btn.addEventListener('click', function () {
+        store.chooseFirstPet(profileKey, id);
+        audio.pop();
+        Array.prototype.forEach.call(grid.children, function (c) { c.classList.remove('on'); });
+        btn.classList.add('on');
+        done.disabled = false;
+      });
+      grid.appendChild(btn);
     });
+    sec.appendChild(grid);
+    s.appendChild(sec);
+    done.addEventListener('click', setupNext);
     s.appendChild(done);
   }
 
@@ -532,11 +535,11 @@
     var carBtn = h('button', 'topbtn carbtn' + (tk > 0 ? ' ready' : ''), LC.carIconSVG());
     var tb = h('span', 'tbadge'); tb.textContent = String(tk); carBtn.appendChild(tb);
     var stamped = store.stamps(key), dots = h('span', 'stampdots');
-    for (var sd = 0; sd < 3; sd++) dots.appendChild(h('i', sd < stamped.length ? 'on' : ''));
+    for (var sd = 0; sd < 3; sd++) dots.appendChild(h('i', sd < stamped.length ? 'on' : '', LC.pawSVG()));
     s.appendChild(dots);
     carBtn.addEventListener('click', function () {
       if (store.tickets(key) > 0) { startRide(); return; }
-      carBtn.classList.add('nope'); audio.boop();
+      carBtn.classList.add('nope'); audio.boop(); audio.voiceTTS('stempels-nodig');
       setTimeout(function () { carBtn.classList.remove('nope'); }, 600);
     });
     s.appendChild(pill); s.appendChild(carBtn); s.appendChild(houseBtn); s.appendChild(shopBtn);
@@ -546,7 +549,9 @@
       var c = h('button', 'gcard gc-' + g[0], LC.gameCardSVG(g[0], !capsOn()));
       c.dataset.game = g[0];
       var t = h('div', 'gtitle'); t.textContent = g[1]; c.appendChild(t);
-      if (stamped.indexOf(g[0]) >= 0) c.appendChild(h('span', 'gstamp', '✔'));
+      if (stamped.indexOf(g[0]) >= 0) {
+        c.appendChild(h('span', 'gstamp' + (state.freshStamp === g[0] ? ' fresh' : ''), LC.pawSVG()));
+      }
       c.style.animationDelay = (-i * 0.9) + 's';
       c.addEventListener('click', function () {
         if (g[0] === 'count') { buildCount(); startCount(); return; }
@@ -555,6 +560,7 @@
       });
       row.appendChild(c);
     });
+    state.freshStamp = null;
     s.appendChild(row);
   }
 
@@ -572,7 +578,7 @@
     var fx = h('div', 'balloons');
 
     var tabs = h('div', 'shoptabs');
-    [['avatar', catFor(key, { head: true })], ['car', LC.carIconSVG()], ['room', LC.homeSVG()], ['kleuren', '🎨']].forEach(function (t) {
+    [['avatar', catFor(key, { head: true, cls: 'still' })], ['car', LC.carIconSVG()], ['room', LC.homeSVG()], ['dieren', '🐾']].forEach(function (t) {
       var b = h('button', 'shoptab' + (t[0] === shopTab ? ' on' : ''), t[1]);
       b.addEventListener('click', function () { shopTab = t[0]; buildShop(); });
       tabs.appendChild(b);
@@ -584,9 +590,8 @@
       var curFur = store.getFur(key);
       var equipped = it.slot === 'fur' ? curFur === it.fur : (!!it.slot && st.avatar[it.slot] === it.id);
       var preview;
-      if (shopTab === 'kleuren') {
-        var furCls = it.fur === 'regenboog' ? 'idle regenboog' : 'idle';
-        preview = LC.catSVG(it.fur, { head: true, cls: furCls });
+      if (shopTab === 'dieren') {
+        preview = LC.catSVG(it.fur, { head: true, cls: 'still' });
       } else if (shopTab === 'avatar') {
         preview = LC.accessoryPreview(key, it.id);
       } else if (shopTab === 'car') {
@@ -892,7 +897,7 @@
 
     var level = store.getTraceLevel(state.profile, effectiveKey);
     tracer = new LC.Tracer(tracerHost, effectiveKey, store.getStrict(state.profile), {
-      pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
+      pawColor: LC.petColor(store.getFur(state.profile)),
       level: level,
       onSuccess: function () { success(key, mine, batchMode); },
       onTry: function () { store.record(state.profile, effectiveKey, 'tryfail'); store.traceResult(state.profile, effectiveKey, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
@@ -952,7 +957,7 @@
           T.digraphRight.innerHTML = '';
           T.digraphRight.className = 'digraph-half digraph-active';
           tracer = new LC.Tracer(T.digraphRight, part1Key, store.getStrict(state.profile), {
-            pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
+            pawColor: LC.petColor(store.getFur(state.profile)),
             level: level1,
             onSuccess: function () { success(key, mine, batchMode); },
             onTry: function () { store.record(state.profile, part1Key, 'tryfail'); store.traceResult(state.profile, part1Key, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
@@ -962,7 +967,7 @@
           });
         } else {
           tracer = new LC.Tracer(T.card, part1Key, store.getStrict(state.profile), {
-            pawColor: FUR_COLORS[store.getFur(state.profile)] || '#ee7fa7',
+            pawColor: LC.petColor(store.getFur(state.profile)),
             level: level1,
             onSuccess: function () { success(key, mine, batchMode); },
             onTry: function () { store.record(state.profile, part1Key, 'tryfail'); store.traceResult(state.profile, part1Key, false); setMood('oops'); audio.boop(); audio.voiceRetry(); },
@@ -1981,7 +1986,7 @@
     card.appendChild(row('Naam bij Speler 1', nameInput('speler1')));
     if (store.getPlayers() === 2) card.appendChild(row('Naam bij Speler 2', nameInput('speler2')));
     var colorBtn = h('button', 'btn'); colorBtn.textContent = 'Kleur poes wijzigen';
-    colorBtn.addEventListener('click', function () { closeModal(); buildColorPicker(); show('profile'); });
+    colorBtn.addEventListener('click', function () { closeModal(); buildPlayerPicker(); show('profile'); });
     card.appendChild(row('Poes kleur', colorBtn));
 
     var actions = h('div', 'actions');

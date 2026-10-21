@@ -126,13 +126,16 @@
   }
 
   // ---- Voice clips: audio/letters/*.mp3 and audio/phrases/*.mp3 ----
-  var clips = {}, curVoice = null, seq = 0;
+  var clips = {}, curVoice = null, curDone = null, seq = 0;
 
   var TTS_TEXTS = {
     'aa': 'aa', 'ee': 'ee', 'oo': 'oo', 'oe': 'oe', 'ij': 'ij',
     'eu': 'eu', 'ie': 'ie', 'ou': 'ou', 'uu': 'uu', 'au': 'au', 'ui': 'ui', 'ei': 'ei',
     'kern-locked': 'Deze letters kun je nog niet oefenen. Vraag papa of mama als je deze letters wil oefenen.',
-    'kern-notyet': 'Deze letters kun je nog niet oefenen. Oefen de andere letters eerst nog een beetje meer.'
+    'kern-notyet': 'Deze letters kun je nog niet oefenen. Oefen de andere letters eerst nog een beetje meer.',
+    'stempel-verdiend': 'Hoera! Je hebt een stempel verdiend! Speel ook andere spelletjes om meer stempels te verdienen.',
+    'bonusrit-verdiend': 'Wow! Je hebt genoeg stempels verdiend voor een bonusritje met de auto. Veel plezier, en doe voorzichtig!',
+    'stempels-nodig': 'Oeps, je hebt nog niet genoeg stempels verdiend. Speel nog wat andere spelletjes om meer stempels te verdienen.'
   };
 
   function speakTTS(text) {
@@ -197,10 +200,12 @@
     ttsSeq++;
     if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (curVoice) { try { curVoice.pause(); } catch (e) { /* ignore */ } curVoice = null; }
+    if (curDone) { var d = curDone; curDone = null; d(true); }
     if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false);
   }
 
-  // Resolves true when a recording exists for this clip (so the game knows if it is silent).
+  // Resolves true when a recording exists for this clip, once it has finished playing (or was stopped), so a
+  // second clip can follow it without cutting it off. Resolves false when there is no recording.
   function playVoice(path) {
     stopVoice();
     var mine = seq;
@@ -216,9 +221,14 @@
       a.addEventListener('playing', function () { if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(true); });
       a.addEventListener('ended', function () { if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false); });
       a.addEventListener('error', function () { if (LC.audio.onTalkingChange) LC.audio.onTalkingChange(false); });
-      var p = a.play();
-      if (p && p.catch) p.catch(function () { /* silent if blocked */ });
-      return true;
+      return new Promise(function (resolve) {
+        var done = function () { if (curDone === done) curDone = null; resolve(true); };
+        curDone = done;
+        a.addEventListener('ended', done);
+        a.addEventListener('error', done);
+        var p = a.play();
+        if (p && p.catch) p.catch(done);
+      });
     });
   }
 
@@ -236,7 +246,7 @@
         var f = /-klein$/.test(s) ? s.replace(/-klein$/, '-fo') : s;
         if (!seen[f]) { seen[f] = 1; clipUrl('audio/letters/' + f + '.mp3'); }
       });
-      ['welkom', 'kies', 'kijk', 'hoeveel', 'wissel', 'meer', 'erbij', 'naam', 'leeftijd'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
+      ['welkom', 'kies', 'kijk', 'hoeveel', 'wissel', 'meer', 'erbij', 'naam', 'leeftijd', 'stempel-verdiend', 'bonusrit-verdiend', 'stempels-nodig'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
       for (var i = 1; i <= PRAISE_COUNT; i++) clipUrl('audio/phrases/goed-' + i + '.mp3');
       for (var j = 1; j <= RETRY_COUNT; j++) clipUrl('audio/phrases/nogeens-' + j + '.mp3');
     },

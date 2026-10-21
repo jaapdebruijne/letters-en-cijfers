@@ -41,6 +41,9 @@ Also used by the game (until you record them a computer voice or silence is used
   kern-locked.mp3       tap on a locked kern   "Deze letters kun je nog niet oefenen. Vraag papa of mama als je deze letters wil oefenen."
   kern-notyet.mp3       tap on a kern not yet  "Deze letters kun je nog niet oefenen. Oefen de andere letters eerst nog een beetje meer."
   wissel.mp3 meer.mp3 erbij.mp3   (see the list above)
+  stempel-verdiend.mp3  new paw stamp earned   "Hoera! Je hebt een stempel verdiend! Speel ook andere spelletjes om meer stempels te verdienen."
+  bonusrit-verdiend.mp3 third stamp, bonus ride earned   "Wow! Je hebt genoeg stempels verdiend voor een bonusritje met de auto. Veel plezier, en doe voorzichtig!"
+  stempels-nodig.mp3    bonus ride tapped too early   "Oeps, je hebt nog niet genoeg stempels verdiend. Speel nog wat andere spelletjes om meer stempels te verdienen."
   Folder audio/letters/
   aa.mp3 ee.mp3 oo.mp3 oe.mp3 ij.mp3 eu.mp3 ie.mp3 ou.mp3 uu.mp3 au.mp3 ui.mp3 ei.mp3   the two-letter sounds when tracing
   <letter>-fo.mp3   the pure sound in Zoeken and Prikken, e.g. i-fo.mp3 k-fo.mp3 aa-fo.mp3 (all kern letters)

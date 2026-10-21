@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   var LC = (window.LC = window.LC || {});
-  var KEY = 'lcl.v2';
+  var KEY = 'lcl.v3';
   var PROFILES = ['speler1', 'speler2'];
   var SLOTS = ['head', 'face', 'body', 'car'];
   var GAMES = ['trace', 'find', 'pop', 'count', 'math'];
@@ -99,7 +99,7 @@
             });
           }
           if (p.masteryThreshold >= 3 && p.masteryThreshold <= 5) out.masteryThreshold = Math.floor(p.masteryThreshold);
-          if (typeof p.fur === 'string' && LC.CATS && LC.CATS[p.fur]) out.fur = p.fur;
+          if (typeof p.fur === 'string' && LC.AVATARS && LC.AVATARS[p.fur]) out.fur = p.fur;
           if (isFinite(p.age) && p.age >= 2 && p.age <= 12) out.age = Math.floor(p.age);
           if (['soepel', 'normaal', 'streng'].indexOf(p.strict) >= 0) out.strict = p.strict;
           if (typeof p.caps === 'boolean') out.caps = p.caps;
@@ -219,8 +219,13 @@
       p.avatar[slot] = id || '';
       save();
     },
-    getFur: function (profile) { return get().profiles[profile].fur || 'roze'; },
+    getFur: function (profile) { return get().profiles[profile].fur || LC.AVATAR_ORDER[0]; },
     setFur: function (profile, furKey) { get().profiles[profile].fur = furKey; save(); },
+    chooseFirstPet: function (profile, id) {
+      var p = get().profiles[profile];
+      p.owned = p.owned.filter(function (x) { return x.indexOf('pet-') !== 0; });
+      p.owned.push('pet-' + id); p.fur = id; save();
+    },
     getAge: function (profile) { return get().profiles[profile].age || 0; },
     setAge: function (profile, age) { get().profiles[profile].age = age; save(); },
     getStrict: function (profile) { return get().profiles[profile].strict || 'normaal'; },
@@ -280,7 +285,7 @@
       PROFILES.forEach(function (k) {
         var p = get().profiles[k];
         var fur = p.fur;
-        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = []; p.avatar = { head: '', face: '', body: '', car: '' }; p.fur = fur; p.recent = {}; p.traceLevel = {}; p.traceStreak = {}; p.traceHist = {}; p.masteryThreshold = 4;
+        p.done = {}; p.stats = {}; p.time = {}; p.mathMax = 5; p.stars = 0; p.tickets = 0; p.stamps = []; p.walk = {}; p.owned = fur ? ['pet-' + fur] : []; p.avatar = { head: '', face: '', body: '', car: '' }; p.fur = fur; p.recent = {}; p.traceLevel = {}; p.traceStreak = {}; p.traceHist = {}; p.masteryThreshold = 4;
       });
       save();
     }
