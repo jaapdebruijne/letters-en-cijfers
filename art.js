@@ -447,14 +447,6 @@
     return LC.AVATAR_ORDER[0];
   };
 
-  // A cat paw print: the stamps for the bonus ride.
-  LC.pawSVG = function () {
-    return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<ellipse cx="50" cy="66" rx="23" ry="19"/><ellipse cx="20" cy="42" rx="9.5" ry="12" transform="rotate(-20 20 42)"/>' +
-      '<ellipse cx="38" cy="24" rx="10" ry="13" transform="rotate(-6 38 24)"/><ellipse cx="62" cy="24" rx="10" ry="13" transform="rotate(6 62 24)"/>' +
-      '<ellipse cx="80" cy="42" rx="9.5" ry="12" transform="rotate(20 80 42)"/></svg>';
-  };
-
   LC.carIconSVG = function () {
     return '<svg viewBox="0 0 64 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
       '<circle cx="31" cy="14" r="9" fill="#f8a5c2"/><path d="M 24 8 L 25 1 L 30 6 Z M 38 8 L 37 1 L 32 6 Z" fill="#f8a5c2"/>' +

@@ -22,6 +22,8 @@
     // Dev override: ?dev=1 in the URL unlocks all kerns for testing.
     // Never part of the installed Android app's launch intent.
     if (typeof location !== 'undefined' && /[?&]dev=1/.test(location.search)) return true;
+    var st = LC.store && LC.store.get && LC.store.get().settings;
+    if (st && st.unlockAll) return true;   // parent switch: everything open (for the family, no payment yet)
     return !!FREE[kernId];
   };
 

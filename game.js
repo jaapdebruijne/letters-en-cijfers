@@ -1997,9 +1997,8 @@
       function (v) { store.setPlayers(+v); openParent(); })));
     card.appendChild(row('Naam bij Speler 1', nameInput('speler1')));
     if (store.getPlayers() === 2) card.appendChild(row('Naam bij Speler 2', nameInput('speler2')));
-    var colorBtn = h('button', 'btn'); colorBtn.textContent = 'Kleur poes wijzigen';
-    colorBtn.addEventListener('click', function () { closeModal(); buildPlayerPicker(); show('profile'); });
-    card.appendChild(row('Poes kleur', colorBtn));
+    card.appendChild(row('Alle kernen open', seg([['uit', 'Uit'], ['aan', 'Aan']], d.settings.unlockAll ? 'aan' : 'uit',
+      function (v) { d.settings.unlockAll = v === 'aan'; store.save(); })));
 
     var actions = h('div', 'actions');
     var prog = h('button', 'btn'); prog.textContent = 'Voortgang bekijken';

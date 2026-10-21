@@ -14,7 +14,7 @@
   function fresh() {
     return {
       profiles: { speler1: freshProfile(), speler2: freshProfile() },
-      settings: { strict: 'normaal', music: true, turnMin: 10, adaptive: true, caps: true, players: 1 }
+      settings: { strict: 'normaal', music: true, turnMin: 10, adaptive: true, caps: true, players: 1, unlockAll: false }
     };
   }
 
@@ -114,6 +114,7 @@
         if (typeof s.adaptive === 'boolean') d.settings.adaptive = s.adaptive;
         if (typeof s.caps === 'boolean') d.settings.caps = s.caps;
         if ([1, 2].indexOf(s.players) >= 0) d.settings.players = s.players;
+        if (typeof s.unlockAll === 'boolean') d.settings.unlockAll = s.unlockAll;
       }
     } catch (e) { /* fall back to defaults */ }
     return d;
