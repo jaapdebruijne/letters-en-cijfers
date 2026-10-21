@@ -233,7 +233,8 @@
       var seen = {};
       LC.ORDER.forEach(function (k) {
         var s = LC.GLYPHS[k].sound;
-        if (!seen[s]) { seen[s] = 1; clipUrl('audio/letters/' + s + '.mp3'); }
+        var f = /-klein$/.test(s) ? s.replace(/-klein$/, '-fo') : s;
+        if (!seen[f]) { seen[f] = 1; clipUrl('audio/letters/' + f + '.mp3'); }
       });
       ['welkom', 'kies', 'kijk', 'hoeveel', 'wissel', 'meer', 'erbij', 'naam', 'leeftijd'].forEach(function (n) { clipUrl('audio/phrases/' + n + '.mp3'); });
       for (var i = 1; i <= PRAISE_COUNT; i++) clipUrl('audio/phrases/goed-' + i + '.mp3');
@@ -260,6 +261,8 @@
     // Phonetic letter sound (klankzuiver): mp3 first, TTS as fallback.
     speakPhonetic: function (letter) {
       var lk = letter.toLowerCase().replace(/-klein$/, '');
+      // Numbers: the "De twee" recording, computer voice only if it is missing.
+      if (/^[0-9]$/.test(lk)) return playVoice('audio/letters/' + lk + '.mp3').then(function (heard) { if (!heard) return tts(lk); });
       return playVoice('audio/letters/' + lk + '-fo.mp3').then(function (heard) {
         if (heard) return;
         return tts(PHONETICS[lk] || lk);
