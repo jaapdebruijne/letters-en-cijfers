@@ -64,6 +64,20 @@
     }
   }
 
+  // The spoken line for a stamp starts a moment after the message and is long; the finale waits for it
+  // (afterStamp) so going back to the menu does not cut it off.
+  function stampVoice(key, toast) {
+    var who = state.profile;
+    var p = new Promise(function (resolve) {
+      setTimeout(function () {
+        if (toast.isConnected && state.profile === who) audio.voiceTTS(key).then(resolve, resolve); else resolve();
+      }, 1700);
+    });
+    state.stampBusy = p;
+    p.then(function () { if (state.stampBusy === p) state.stampBusy = null; });
+  }
+  function afterStamp(fn) { if (state.stampBusy) state.stampBusy.then(fn); else fn(); }
+
   // A finished game round earns a stamp for that game. Stamps from 3 different games make a bonus
   // ride, so the same easy game over and over gives only one stamp.
   function earnStamp(game, container) {
@@ -73,14 +87,12 @@
     var t;
     if (r === 'ticket') {
       t = h('div', 'ticket-toast', LC.carIconSVG() + '<span>Bonusrit!</span>');
-      var who3 = state.profile;
-      setTimeout(function () { if (t.parentNode && state.profile === who3) audio.voiceTTS('bonusrit-verdiend'); }, 1700);
+      stampVoice('bonusrit-verdiend', t);
     }
     else if (r === 'new') {
       state.freshStamp = game;
       t = h('div', 'ticket-toast stamp-toast', '<span class="tpaw">' + LC.pawSVG() + '</span><span>Stempel ' + store.stamps(state.profile).length + ' van 3</span>');
-      var who = state.profile;
-      setTimeout(function () { if (t.parentNode && state.profile === who) audio.voiceTTS('stempel-verdiend'); }, 1700);
+      stampVoice('stempel-verdiend', t);
     }
     else t = h('div', 'ticket-toast', '<span class="tstar">★</span><span>Probeer een ander spel!</span>');
     container.appendChild(t);
@@ -1013,7 +1025,7 @@
         setTimeout(function () { if (mine === token) { burst(); audio.chime(); } }, 2400);
         advanceTimer = setTimeout(function () {
           if (mine !== token) return;
-          leaveTrace(); buildMenu(); show('menu');
+          afterStamp(function () { if (mine !== token) return; leaveTrace(); buildMenu(); show('menu'); });
         }, 6000);
         return;
       }
@@ -1188,7 +1200,7 @@
     setTimeout(function () { if (gen === F.gen) { audio.chime(); burst(F.balloons); gain(2, F.balloons); if (F.first >= 4) earnStamp('find', F.balloons); if (F._wasBatch) state.firstBatchDone = true; } }, 1200);
     F.timer = setTimeout(function () {
       if (gen !== F.gen) return;
-      leaveFind(); buildMenu(); show('menu');
+      afterStamp(function () { if (gen !== F.gen) return; leaveFind(); buildMenu(); show('menu'); });
     }, 5000);
   }
 
@@ -1403,7 +1415,7 @@
     setTimeout(function () { if (gen === G.gen) { audio.chime(); burst(G.fx); gain(bonus, G.fx); if (G.firstTry >= 4) earnStamp('pop', G.fx); if (G._wasBatch) state.firstBatchDone = true; } }, 400);
     G.timer = setTimeout(function () {
       if (gen !== G.gen) return;
-      leavePop(); buildMenu(); show('menu');
+      afterStamp(function () { if (gen !== G.gen) return; leavePop(); buildMenu(); show('menu'); });
     }, 5000);
   }
 
@@ -1544,7 +1556,7 @@
     setTimeout(function () { if (gen === C.gen) { audio.chime(); burst(C.fx); gain(bonus, C.fx); if (C.firstTry >= 4) earnStamp('count', C.fx); } }, 1200);
     C.timer = setTimeout(function () {
       if (gen !== C.gen) return;
-      leaveCount(); buildGames(); show('games');
+      afterStamp(function () { if (gen !== C.gen) return; leaveCount(); buildGames(); show('games'); });
     }, 5000);
   }
 
@@ -1834,7 +1846,7 @@
     setTimeout(function () { if (gen === M.gen) { audio.chime(); burst(M.fx); gain(bonus, M.fx); if (M.firstTry >= 4) earnStamp('math', M.fx); } }, 1200);
     M.timer = setTimeout(function () {
       if (gen !== M.gen) return;
-      leaveMath(); buildGames(); show('games');
+      afterStamp(function () { if (gen !== M.gen) return; leaveMath(); buildGames(); show('games'); });
     }, 5000);
   }
 

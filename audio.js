@@ -212,7 +212,7 @@
     return clipUrl(path).then(function (u) {
       if (!u) {
         var ttsKey = path.replace(/^audio\/letters\//, '').replace(/^audio\/phrases\//, '').replace(/\.mp3$/, '');
-        if (TTS_TEXTS[ttsKey]) speakTTS(TTS_TEXTS[ttsKey]);
+        if (TTS_TEXTS[ttsKey]) return tts(TTS_TEXTS[ttsKey]).then(function () { return false; });
         return false;
       }
       if (mine !== seq) return true;
