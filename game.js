@@ -1731,7 +1731,7 @@
       ans = Number(pickTarget(range, String(M.prevAns), M.used));
       M.used[String(ans)] = 1; M.prevAns = ans; M.answer = ans;
       var ea = 1 + rnd(ans - 1), eb = ans - ea;
-      var kindB = kinds[(kinds.indexOf(kind) + 1 + rnd(3)) % kinds.length], colorB = colors[(colors.indexOf(color) + 1 + rnd(5)) % colors.length];
+      var kindB = kind, colorB = color;
       var elsA = fillGroup(M.field, ea, kind, color, 3, 3, 3, 36, 10, 74);
       var elsB = fillGroup(M.field, eb, kindB, colorB, 3, 3, 61, 36, 10, 74);
       var plus = h('div', 'mplus'); plus.textContent = '+'; M.field.appendChild(plus);
